@@ -4,7 +4,7 @@ import time
 import torch
 import wandb
 import torch.nn as nn
-from utils.loss import ProbabilityLoss, BatchLoss, ChannelLoss
+from utils.loss import ProbabilityLoss, BatchLoss, ChannelLoss, GaussianPriorLoss
 import torch.distributed as dist
 from utils import ramps, epochVal
 
@@ -20,6 +20,11 @@ def trainEncoder(model, ema_model, dataloader, optimizer, logger, args):
     probability_loss_func = ProbabilityLoss()
     batch_sim_loss_func = BatchLoss(args.batch_size, args.world_size)
     channel_sim_loss_func = ChannelLoss(args.batch_size, args.world_size)
+    gaussian_prior_loss_func = GaussianPriorLoss(
+        num_classes=args.num_classes,
+        ema_momentum=args.gaussian_ema_momentum,
+        var_floor=args.gaussian_var_floor,
+    )
     classification_loss_func = nn.CrossEntropyLoss()
     start = time.time()
     cur_iters = 0
@@ -52,6 +57,11 @@ def trainEncoder(model, ema_model, dataloader, optimizer, logger, args):
             loss = classification_loss * args.classification_loss_weight
             if epoch > 20:
                 loss = loss + probability_loss * args.probability_loss_weight + batch_sim_loss * args.batch_loss_weight + channel_sim_loss * args.channel_loss_weight
+            if epoch >= args.gaussian_prior_start_epoch and args.gaussian_prior_weight > 0:
+                gaussian_prior_loss = gaussian_prior_loss_func(activations, label)
+                loss = loss + gaussian_prior_loss * args.gaussian_prior_weight
+            else:
+                gaussian_prior_loss = torch.tensor(0.0, device=activations.device)
 
             # log loss value only for rank 0
             # to make it consistent with other losses
@@ -84,7 +94,8 @@ def trainEncoder(model, ema_model, dataloader, optimizer, logger, args):
                                                  'probability loss': probability_loss.item(),
                                                  'batch similarity loss': batch_sim_loss.item(),
                                                  'channel similarity loss': channel_sim_loss.item(),
-                                                 'classification loss': classification_loss.item()}})
+                                                 'classification loss': classification_loss.item(),
+                                                 'gaussian prior loss': gaussian_prior_loss.item()}})
                         logger.log({'test': {'Accuracy': test_acc,
                                              'F1 score': test_f1,
                                              'AUC': test_auc,

@@ -5,7 +5,7 @@ import torch
 import numpy as np
 import pandas as pd
 from models import CreateModel, Linear
-from data import Transforms, ISICDataset, virtual_feature_compensation
+from data import Transforms, ISICDataset, virtual_representations
 from utils.yaml_config_hook import yaml_config_hook
 from torch.utils.data import DataLoader
 from utils import epochVal, epochTest
@@ -201,7 +201,7 @@ if __name__ == "__main__":
 
         # Virtual sample compensation
         if args.virtual_size > 0:
-            train_X, train_y = virtual_feature_compensation(train_X, train_y, n_classes, args.virtual_size)
+            train_X, train_y = virtual_representations(train_X, train_y, n_classes, args.virtual_size)
 
         arr_train_loader, arr_test_loader, arr_val_loader = create_data_loaders_from_arrays(
             train_X, train_y, test_X, test_y, val_X, val_y, args.stage2_batch_size

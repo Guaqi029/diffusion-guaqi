@@ -1,4 +1,6 @@
 import os
+import sys
+import subprocess
 import torch
 import wandb
 import argparse
@@ -64,6 +66,7 @@ def main(gpu, args, wandb_logger):
     loaders = (train_loader, val_loader, test_loader)
 
     num_class = train_dataset.n_class
+    args.num_classes = num_class
 
     # model init
     model = CreateModel(backbone=args.backbone, ema=False, out_features=num_class, pretrained=args.pretrained)
@@ -92,6 +95,34 @@ def main(gpu, args, wandb_logger):
     trainEncoder(model, ema_model, loaders, optimizer, wandb_logger, args)
 
 
+def run_stage2(args):
+    cmd = [sys.executable, "stage2.py"]
+    passthrough = [a for a in sys.argv[1:] if a not in ("--auto_run_stage2",)]
+    # Remove stage1-only args
+    passthrough = [a for a in passthrough if a not in ("--stage2_log", "--stage2_debug")]
+    if args.stage2_debug and "--debug" not in passthrough:
+        passthrough.append("--debug")
+    cmd.extend(passthrough)
+
+    if args.stage2_log:
+        with open(args.stage2_log, "w", encoding="utf-8") as log_f:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+            )
+            for line in proc.stdout:
+                sys.stdout.write(line)
+                log_f.write(line)
+            proc.wait()
+            if proc.returncode != 0:
+                raise subprocess.CalledProcessError(proc.returncode, cmd)
+    else:
+        subprocess.run(cmd, check=True)
+
+
 if __name__ == '__main__':
     # args
     parser = argparse.ArgumentParser()
@@ -100,6 +131,9 @@ if __name__ == '__main__':
         parser.add_argument(f"--{k}", default=v, type=type(v))
 
     parser.add_argument('--debug', action="store_true", help='debug mode(disable wandb)')
+    parser.add_argument('--auto_run_stage2', action="store_true", help='run stage2 after stage1 finishes')
+    parser.add_argument('--stage2_debug', action="store_true", help='force stage2 to run in debug mode')
+    parser.add_argument('--stage2_log', type=str, default="", help='log file path for stage2 output')
     args = parser.parse_args()
 
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -147,4 +181,8 @@ if __name__ == '__main__':
         mp.spawn(main, args=(args, wandb_logger,), nprocs=args.world_size, join=True)
     else:
         main(0, args, wandb_logger)
+
+    # Run stage2 once after stage1 finishes (only in the launcher process)
+    if args.auto_run_stage2:
+        run_stage2(args)
 

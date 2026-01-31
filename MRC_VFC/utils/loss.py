@@ -94,6 +94,46 @@ class GCELoss(nn.Module):
         return loss.mean()
 
 
+class GaussianPriorLoss(nn.Module):
+    """
+    Class-conditional Gaussian prior with diagonal covariance.
+    Maintains EMA stats for each class and penalizes NLL under the class Gaussian.
+    """
+    def __init__(self, num_classes, ema_momentum=0.1, var_floor=1e-4):
+        super(GaussianPriorLoss, self).__init__()
+        self.num_classes = num_classes
+        self.ema_momentum = ema_momentum
+        self.var_floor = var_floor
+        self.means = None
+        self.vars = None
+
+    def _lazy_init(self, feat_dim, device, dtype):
+        self.means = torch.zeros(self.num_classes, feat_dim, device=device, dtype=dtype)
+        self.vars = torch.ones(self.num_classes, feat_dim, device=device, dtype=dtype)
+
+    def forward(self, features, labels):
+        if self.means is None or self.vars is None:
+            self._lazy_init(features.size(1), features.device, features.dtype)
+
+        # Update EMA stats for classes present in the batch
+        for cls in labels.unique():
+            cls = int(cls.item())
+            mask = labels == cls
+            if mask.sum() < 2:
+                continue
+            cls_feats = features[mask]
+            batch_mean = cls_feats.mean(dim=0)
+            batch_var = cls_feats.var(dim=0, unbiased=False).clamp_min(self.var_floor)
+            self.means[cls] = (1 - self.ema_momentum) * self.means[cls] + self.ema_momentum * batch_mean
+            self.vars[cls] = (1 - self.ema_momentum) * self.vars[cls] + self.ema_momentum * batch_var
+
+        means = self.means[labels]
+        vars_ = self.vars[labels].clamp_min(self.var_floor)
+        diff = features - means
+        nll = 0.5 * (diff * diff / vars_).sum(dim=1) + 0.5 * torch.log(vars_).sum(dim=1)
+        return nll.mean()
+
+
 class pNorm(nn.Module):
     def __init__(self, p=0.5):
         super(pNorm, self).__init__()

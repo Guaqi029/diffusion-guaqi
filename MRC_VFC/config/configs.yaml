@@ -34,6 +34,12 @@ channel_loss_weight: 10
 classification_loss_weight: 1
 probability_loss_weight: 5
 
+# Stage1 gaussian prior (class-conditional)
+gaussian_prior_weight: 1.0
+gaussian_ema_momentum: 0.1
+gaussian_var_floor: 0.0001
+gaussian_prior_start_epoch: 20
+
 # Stage2 options
 stage2_batch_size: 256
 stage2_epochs: 500

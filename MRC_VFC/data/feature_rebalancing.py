@@ -24,7 +24,7 @@ def virtual_representations(x, y, class_num, size=1000):
         covariance = np.matmul(normed.T, normed) / (len(class_samples) - 1)
 
         gaussian_samples = np.random.multivariate_normal(mean, covariance, size)
-        gaussian_labels = i * np.ones(size, dtype=np.long)
+        gaussian_labels = i * np.ones(size, dtype=np.int64)
         
         virtual_samples.extend(gaussian_samples)
         virtual_labels.extend(gaussian_labels)

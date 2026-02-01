@@ -16,7 +16,14 @@ def update_ema_variables(model, ema_model, alpha, global_step):
         ema_param.data.mul_(alpha).add_(1 - alpha, param.data)
 
 
-def trainEncoder(model, ema_model, dataloader, optimizer, logger, args):
+def _write_local_log(log_f, msg):
+    if log_f is None:
+        return
+    log_f.write(msg + "\n")
+    log_f.flush()
+
+
+def trainEncoder(model, ema_model, dataloader, optimizer, logger, args, aux_vae=None, log_f=None):
     probability_loss_func = ProbabilityLoss()
     batch_sim_loss_func = BatchLoss(args.batch_size, args.world_size)
     channel_sim_loss_func = ChannelLoss(args.batch_size, args.world_size)
@@ -26,6 +33,10 @@ def trainEncoder(model, ema_model, dataloader, optimizer, logger, args):
         var_floor=args.gaussian_var_floor,
     )
     classification_loss_func = nn.CrossEntropyLoss()
+    if args.aux_vae_recon_type == "mse":
+        recon_loss_func = nn.MSELoss()
+    else:
+        recon_loss_func = nn.L1Loss()
     start = time.time()
     cur_iters = 0
     model.train()
@@ -63,6 +74,15 @@ def trainEncoder(model, ema_model, dataloader, optimizer, logger, args):
             else:
                 gaussian_prior_loss = torch.tensor(0.0, device=activations.device)
 
+            if aux_vae is not None and args.use_aux_vae and epoch >= args.aux_vae_start_epoch:
+                mu, logvar, recon = aux_vae(activations)
+                recon_loss = recon_loss_func(recon, img)
+                kl_loss = -0.5 * torch.mean(1 + logvar - mu.pow(2) - logvar.exp())
+                loss = loss + recon_loss * args.aux_vae_recon_weight + kl_loss * args.aux_vae_kl_weight
+            else:
+                recon_loss = torch.tensor(0.0, device=activations.device)
+                kl_loss = torch.tensor(0.0, device=activations.device)
+
             # log loss value only for rank 0
             # to make it consistent with other losses
             if args.rank == 0:
@@ -94,8 +114,10 @@ def trainEncoder(model, ema_model, dataloader, optimizer, logger, args):
                                                  'probability loss': probability_loss.item(),
                                                  'batch similarity loss': batch_sim_loss.item(),
                                                  'channel similarity loss': channel_sim_loss.item(),
-                                                 'classification loss': classification_loss.item(),
-                                                 'gaussian prior loss': gaussian_prior_loss.item()}})
+                                                'classification loss': classification_loss.item(),
+                                                 'gaussian prior loss': gaussian_prior_loss.item(),
+                                                 'aux recon loss': recon_loss.item(),
+                                                 'aux kl loss': kl_loss.item()}})
                         logger.log({'test': {'Accuracy': test_acc,
                                              'F1 score': test_f1,
                                              'AUC': test_auc,
@@ -108,6 +130,32 @@ def trainEncoder(model, ema_model, dataloader, optimizer, logger, args):
                                                    'Balanced Accuracy': val_bac,
                                                    'Sensitivity': val_sens,
                                                    'Specificity': val_spec}})
+                    _write_local_log(
+                        log_f,
+                        "train: total={:.6f}, prob={:.6f}, batch={:.6f}, channel={:.6f}, cls={:.6f}, "
+                        "gauss={:.6f}, aux_recon={:.6f}, aux_kl={:.6f}".format(
+                            rank0_loss,
+                            probability_loss.item(),
+                            batch_sim_loss.item(),
+                            channel_sim_loss.item(),
+                            classification_loss.item(),
+                            gaussian_prior_loss.item(),
+                            recon_loss.item(),
+                            kl_loss.item(),
+                        ),
+                    )
+                    _write_local_log(
+                        log_f,
+                        "test: acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
+                            test_acc, test_f1, test_auc, test_bac, test_sens, test_spec
+                        ),
+                    )
+                    _write_local_log(
+                        log_f,
+                        "val: acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
+                            val_acc, val_f1, val_auc, val_bac, val_sens, val_spec
+                        ),
+                    )
                     print('\rEpoch: [%2d/%2d] Iter [%4d/%4d] || Time: %4.4f sec || lr: %.6f || Loss: %.4f' % (
                         epoch, args.epochs, i + 1, len(train_loader), time.time() - start,
                         cur_lr, loss.item()), end='', flush=True)

@@ -1,11 +1,12 @@
 import os
 import sys
 import subprocess
+import time
 import torch
 import wandb
 import argparse
 import torch.distributed as dist
-from models import CreateModel
+from models import CreateModel, AuxVAE
 import torch.multiprocessing as mp
 from torch.nn.parallel import DataParallel
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -80,19 +81,32 @@ def main(gpu, args, wandb_logger):
     model = model.to(args.device)
     ema_model = ema_model.to(args.device)
 
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
+    aux_vae = None
+    if args.use_aux_vae:
+        aux_vae = AuxVAE(
+            in_features=model.n_features,
+            latent_dim=args.aux_vae_latent_dim,
+            image_size=args.image_size,
+        ).to(args.device)
+        optim_params = list(model.parameters()) + list(aux_vae.parameters())
+    else:
+        optim_params = model.parameters()
+
+    optimizer = torch.optim.SGD(optim_params, lr=args.lr, momentum=0.9)
 
     if args.dataparallel:
         model = convert_model(model)
         model = DataParallel(model)
         ema_model = convert_model(ema_model)
         ema_model = DataLoader(ema_model)
+        if aux_vae is not None:
+            aux_vae = DataParallel(aux_vae)
     else:
         if args.world_size > 1:
             model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
             model = DDP(model, device_ids=[gpu])
 
-    trainEncoder(model, ema_model, loaders, optimizer, wandb_logger, args)
+    trainEncoder(model, ema_model, loaders, optimizer, wandb_logger, args, aux_vae=aux_vae, log_f=args._log_f)
 
 
 def run_stage2(args):
@@ -131,6 +145,7 @@ if __name__ == '__main__':
         parser.add_argument(f"--{k}", default=v, type=type(v))
 
     parser.add_argument('--debug', action="store_true", help='debug mode(disable wandb)')
+    parser.add_argument('--log_file', type=str, default="", help='write debug logs to a local file')
     parser.add_argument('--auto_run_stage2', action="store_true", help='run stage2 after stage1 finishes')
     parser.add_argument('--stage2_debug', action="store_true", help='force stage2 to run in debug mode')
     parser.add_argument('--stage2_log', type=str, default="", help='log file path for stage2 output')
@@ -139,6 +154,17 @@ if __name__ == '__main__':
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.num_gpus = torch.cuda.device_count()
     args.world_size = args.gpus * args.nodes
+
+    if not args.run_name:
+        args.run_name = time.strftime("run_%Y%m%d_%H%M%S")
+    args.checkpoints = os.path.join(args.checkpoints, args.run_name)
+
+    args._log_f = None
+    if args.debug and args.log_file:
+        log_dir = os.path.dirname(args.log_file)
+        if log_dir:
+            os.makedirs(log_dir, exist_ok=True)
+        args._log_f = open(args.log_file, "w", encoding="utf-8")
 
     # Master address for distributed data parallel
     os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
@@ -185,4 +211,7 @@ if __name__ == '__main__':
     # Run stage2 once after stage1 finishes (only in the launcher process)
     if args.auto_run_stage2:
         run_stage2(args)
+
+    if args._log_f is not None:
+        args._log_f.close()
 

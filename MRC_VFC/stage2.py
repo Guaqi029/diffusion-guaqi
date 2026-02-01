@@ -1,4 +1,5 @@
 import os
+import time
 import wandb
 import argparse
 import torch
@@ -121,6 +122,18 @@ def m_step(classifier, opt, loader, loss_func, logger):
     return epoch_loss, epoch_acc
 
 
+def _write_local_log(log_f, msg):
+    if log_f is None:
+        return
+    log_f.write(msg + "\n")
+    log_f.flush()
+
+
+def _log_metrics_local(log_f, prefix, metrics):
+    parts = [f"{k}={v:.6f}" if isinstance(v, (float, int)) else f"{k}={v}" for k, v in metrics.items()]
+    _write_local_log(log_f, f"{prefix}: " + ", ".join(parts))
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     yaml_config = yaml_config_hook("./config/configs.yaml")
@@ -128,9 +141,18 @@ if __name__ == "__main__":
         parser.add_argument(f"--{k}", default=v, type=type(v))
 
     parser.add_argument('--debug', action="store_true", help='debug mode(disable wandb)')
+    parser.add_argument('--log_file', type=str, default="", help='write debug logs to a local file')
     args = parser.parse_args()
 
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if not args.run_name:
+        args.run_name = time.strftime("run_%Y%m%d_%H%M%S")
+    args.checkpoints = os.path.join(args.checkpoints, args.run_name)
+
+    log_f = None
+    if args.debug and args.log_file:
+        log_f = open(args.log_file, "w", encoding="utf-8")
+        _write_local_log(log_f, f"Stage2 start: {time.strftime('%Y-%m-%d %H:%M:%S')}")
 
     if not args.debug:
         wandb.login(key="[Your wandb key here]")
@@ -193,6 +215,9 @@ if __name__ == "__main__":
                                            lr=args.classifier_lr, momentum=0.9, weight_decay=1e-4)
     classifier_criterion = torch.nn.CrossEntropyLoss()
 
+    best_val_acc = -1.0
+    best_test_acc = -1.0
+
     for epoch in range(args.stage2_epochs):
         # extract features with the backbone
         train_X, train_y, test_X, test_y, val_X, val_y = get_features(
@@ -218,7 +243,7 @@ if __name__ == "__main__":
 
         test_acc, test_f1, test_auc, test_bac, test_sens, test_spec = epochVal(classifier_model, arr_test_loader)
         val_acc, val_f1, val_auc, val_bac, val_sens, val_spec = epochVal(classifier_model, arr_val_loader)
-        if args.wandb:
+        if wandb_logger is not None:
             wandb_logger.log({'test': {'Accuracy': test_acc,
                                        'F1 score': test_f1,
                                        'AUC': test_auc,
@@ -231,6 +256,25 @@ if __name__ == "__main__":
                                              'Balanced Accuracy': val_bac,
                                              'Sensitivity': val_sens,
                                              'Specificity': val_spec}})
+        _log_metrics_local(log_f, f"epoch {epoch} test", {
+            "acc": test_acc, "f1": test_f1, "auc": test_auc, "bac": test_bac, "sens": test_sens, "spec": test_spec
+        })
+        _log_metrics_local(log_f, f"epoch {epoch} val", {
+            "acc": val_acc, "f1": val_f1, "auc": val_auc, "bac": val_bac, "sens": val_sens, "spec": val_spec
+        })
+
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            torch.save(classifier_model.state_dict(), os.path.join(args.checkpoints, "stage2_best_classifier.pth"))
+            torch.save(backbone_model.state_dict(), os.path.join(args.checkpoints, "stage2_best_backbone.pth"))
+        if test_acc > best_test_acc:
+            best_test_acc = test_acc
         print(
             f"Epoch [{epoch}/{args.stage2_epochs}]\t Loss: {loss_epoch / len(arr_train_loader)}\t Accuracy: {acc_epoch / len(arr_train_loader)}"
         )
+        if log_f is not None:
+            _write_local_log(log_f, f"Epoch [{epoch}/{args.stage2_epochs}] Loss={loss_epoch / len(arr_train_loader):.6f} Acc={acc_epoch / len(arr_train_loader):.6f}")
+
+    if log_f is not None:
+        _write_local_log(log_f, f"Best val acc={best_val_acc:.6f}, best test acc={best_test_acc:.6f}")
+        log_f.close()

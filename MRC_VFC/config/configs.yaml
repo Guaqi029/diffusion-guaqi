@@ -39,17 +39,51 @@ probability_loss_weight: 5
 
 # Stage1 auxiliary VAE (kept optional for ablation)
 use_aux_vae: False
+aux_vae_type: "lite"  # simple | lite
+aux_vae_input: "image"  # features | image
 aux_vae_latent_dim: 128
 aux_vae_recon_weight: 1.0
-aux_vae_kl_weight: 0.1
+aux_vae_kl_weight: 0
 aux_vae_recon_type: "l1"  # l1 or mse
 aux_vae_start_epoch: 0
+aux_vae_base_channels: 64
+aux_vae_dwt_levels: 1
+
+# Stage1 LiteVAE KD pretraining (ResNet teacher -> LiteVAE student)
+kd_enable: False
+kd_only: True  # when True, only KD/LiteVAE losses are optimized
+kd_freeze_teacher: True
+kd_temperature: 2.0
+kd_logit_weight: 1.0
+kd_feat_weight: 1.0
+kd_feat_norm: "l2"  # l2 | none
+kd_feat_project: True
+kd_save_lite: True
+kd_save_every_epoch: True
+kd_save_latest: True
+
+lite_vae_variant: "full"  # full | simple
+lite_vae_dwt_levels: 3
+lite_vae_base_channels: 64
+lite_vae_latent_dim: 256
+lite_vae_recon_weight: 1.0
+lite_vae_kl_weight: 0.1
+lite_vae_recon_type: "l1"  # l1 or mse
+lite_student_ce_weight: 0.1
+lite_vae_resume_path: ""
+lite_classifier_resume_path: ""
+kd_feat_proj_resume_path: ""
+lite_eval_enable: False
+lite_eval_use_classifier: True
+lite_eval_only: False
 
 # Stage1 gaussian prior (class-conditional)
-gaussian_prior_weight: 1.0
+gaussian_prior_weight: 0.1
 gaussian_ema_momentum: 0.1
-gaussian_var_floor: 0.0001
+gaussian_var_floor: 0.01
 gaussian_prior_start_epoch: 20
+gaussian_prior_mode: "fixed_var"  # nll | fixed_var | center
+gaussian_fixed_var_value: 1.0
 
 # Stage2 options
 stage2_batch_size: 256

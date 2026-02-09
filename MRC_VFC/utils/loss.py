@@ -99,11 +99,13 @@ class GaussianPriorLoss(nn.Module):
     Class-conditional Gaussian prior with diagonal covariance.
     Maintains EMA stats for each class and penalizes NLL under the class Gaussian.
     """
-    def __init__(self, num_classes, ema_momentum=0.1, var_floor=1e-4):
+    def __init__(self, num_classes, ema_momentum=0.1, var_floor=1e-4, mode="nll", fixed_var_value=1.0):
         super(GaussianPriorLoss, self).__init__()
         self.num_classes = num_classes
         self.ema_momentum = ema_momentum
         self.var_floor = var_floor
+        self.mode = mode
+        self.fixed_var_value = fixed_var_value
         self.means = None
         self.vars = None
 
@@ -115,22 +117,30 @@ class GaussianPriorLoss(nn.Module):
         if self.means is None or self.vars is None:
             self._lazy_init(features.size(1), features.device, features.dtype)
 
-        # Update EMA stats for classes present in the batch
-        for cls in labels.unique():
-            cls = int(cls.item())
-            mask = labels == cls
-            if mask.sum() < 2:
-                continue
-            cls_feats = features[mask]
-            batch_mean = cls_feats.mean(dim=0)
-            batch_var = cls_feats.var(dim=0, unbiased=False).clamp_min(self.var_floor)
-            self.means[cls] = (1 - self.ema_momentum) * self.means[cls] + self.ema_momentum * batch_mean
-            self.vars[cls] = (1 - self.ema_momentum) * self.vars[cls] + self.ema_momentum * batch_var
+        # Update EMA stats for classes present in the batch (no grad)
+        with torch.no_grad():
+            for cls in labels.unique():
+                cls = int(cls.item())
+                mask = labels == cls
+                if mask.sum() < 2:
+                    continue
+                cls_feats = features[mask]
+                batch_mean = cls_feats.mean(dim=0)
+                batch_var = cls_feats.var(dim=0, unbiased=False).clamp_min(self.var_floor)
+                self.means[cls] = (1 - self.ema_momentum) * self.means[cls] + self.ema_momentum * batch_mean
+                self.vars[cls] = (1 - self.ema_momentum) * self.vars[cls] + self.ema_momentum * batch_var
 
         means = self.means[labels]
-        vars_ = self.vars[labels].clamp_min(self.var_floor)
         diff = features - means
-        nll = 0.5 * (diff * diff / vars_).sum(dim=1) + 0.5 * torch.log(vars_).sum(dim=1)
+        if self.mode == "center":
+            return (diff * diff).mean(dim=1).mean()
+
+        if self.mode == "fixed_var":
+            vars_ = torch.full_like(diff, self.fixed_var_value)
+        else:
+            vars_ = self.vars[labels].clamp_min(self.var_floor)
+
+        nll = 0.5 * (diff * diff / vars_).mean(dim=1) + 0.5 * torch.log(vars_).mean(dim=1)
         return nll.mean()
 
 

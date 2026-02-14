@@ -14,6 +14,9 @@ checkpoints: "./checkpoints"
 
 # Run naming
 run_name: ""
+teacher_run_name: ""
+student_run_name: ""
+teacher_epoch: 0
 
 # Dataset Options
 dataset: "ISIC2019LT"
@@ -24,13 +27,15 @@ seed: 42
 batch_size: 128
 image_size: 224
 start_epoch: 0
-epochs: 100
+epochs: 30
 pretrained: True
 backbone: "resnet18"
-reload: False
+reload: True
 
 # Stage1 options
-lr: 0.01
+lr: 0.001
+grad_clip_enable: True
+grad_clip_norm: 1.0
 ema_decay: 0.999
 batch_loss_weight: 10
 channel_loss_weight: 10
@@ -50,29 +55,45 @@ aux_vae_base_channels: 64
 aux_vae_dwt_levels: 1
 
 # Stage1 LiteVAE KD pretraining (ResNet teacher -> LiteVAE student)
-kd_enable: False
+kd_enable: True
 kd_only: True  # when True, only KD/LiteVAE losses are optimized
 kd_freeze_teacher: True
-kd_temperature: 2.0
-kd_logit_weight: 1.0
-kd_feat_weight: 1.0
+kd_temperature: 4.0
+kd_logit_weight: 0.2
+kd_feat_weight: 0.2
 kd_feat_norm: "l2"  # l2 | none
 kd_feat_project: True
 kd_save_lite: True
 kd_save_every_epoch: True
 kd_save_latest: True
 
+# Stage1 feature mix (Step4)
+mix_enable: False
+mix_alpha_start: 0.0
+mix_alpha_end: 1.0
+mix_start_epoch: 0
+mix_end_epoch: 50
+mix_schedule: "linear"  # linear | cosine
+mix_freeze_teacher: True
+mix_disable_mrc: True
+mix_eval_enable: False
+
 lite_vae_variant: "full"  # full | simple
 lite_vae_dwt_levels: 3
 lite_vae_base_channels: 64
 lite_vae_latent_dim: 256
-lite_vae_recon_weight: 1.0
-lite_vae_kl_weight: 0.1
+lite_vae_recon_weight: 0.05
+lite_vae_kl_weight: 0.0
 lite_vae_recon_type: "l1"  # l1 or mse
-lite_student_ce_weight: 0.1
+lite_student_ce_weight: 1.0
+# lite_vae_resume_path: "litevae_epoch_40_.pth"
+# lite_classifier_resume_path: "lite_classifier_epoch_40_.pth"
+# kd_feat_proj_resume_path: "kd_feat_proj_epoch_40_.pth"
 lite_vae_resume_path: ""
 lite_classifier_resume_path: ""
 kd_feat_proj_resume_path: ""
+
+# lite
 lite_eval_enable: False
 lite_eval_use_classifier: True
 lite_eval_only: False
@@ -91,3 +112,25 @@ stage2_epochs: 500
 classifier_lr: 0.00001
 backbone_lr: 0.000001
 virtual_size: 50000
+stage2_feature_source: "lite"  # resnet | lite
+stage2_lite_feature_mode: "mu"  # mu | z
+stage2_backbone_resume_path: ""
+stage2_enable_estep: True
+stage2_recompute_features_each_epoch: True
+
+# Stage2 class-conditional Gaussian sampling
+stage2_virtual_enable: True
+stage2_virtual_mode: "tail_to_target"  # uniform | tail_to_target
+stage2_virtual_merge_real: True
+stage2_tail_scale: 1.0
+stage2_tail_target: "max"  # max | median | mean
+stage2_virtual_min_per_class: 0
+stage2_virtual_max_per_class: -1
+stage2_virtual_counts_path: ""  # optional json: list or {class_id: count}
+
+stage2_gaussian_covariance: "diag"  # diag | full
+stage2_gaussian_var_floor: 0.0001
+stage2_use_saved_gaussian: False
+stage2_save_gaussian_stats: True
+stage2_gaussian_stats_path: ""  # relative to checkpoints/run_name unless absolute
+stage2_recompute_gaussian_each_epoch: True

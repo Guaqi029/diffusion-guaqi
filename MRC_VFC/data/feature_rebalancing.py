@@ -1,32 +1,144 @@
 import numpy as np
 
 
-def virtual_representations(x, y, class_num, size=1000):
+def compute_virtual_class_sizes(
+    y,
+    class_num,
+    uniform_size=1000,
+    mode="uniform",
+    tail_scale=1.0,
+    tail_target="max",
+    min_size=0,
+    max_size=-1,
+):
     """
-    Classifier Calibration with Virtual Representations
-    :param x: feature matrix, size = N x C
-    :param y: labels, size = N
-    :param class_num: number of classes
-    :param size: target number of generating virtual samples for each class
-    :return:
+    Compute generated sample size per class.
+
+    mode = "uniform": keep old behavior, each class has `uniform_size` synthetic samples.
+    mode = "tail_to_target": only generate for under-represented classes to approach target count.
     """
-    assert len(set(y)) == class_num, \
-        'Training set must include the samples from all the classes'
+    if mode == "uniform":
+        sizes = np.full(class_num, int(uniform_size), dtype=np.int64)
+    elif mode == "tail_to_target":
+        counts = np.bincount(y, minlength=class_num).astype(np.int64)
+        if tail_target == "max":
+            target = int(np.max(counts))
+        elif tail_target == "median":
+            target = int(np.median(counts))
+        elif tail_target == "mean":
+            target = int(np.mean(counts))
+        else:
+            raise ValueError(f"Unsupported tail_target: {tail_target}")
+
+        deficits = np.maximum(target - counts, 0)
+        sizes = np.round(deficits * float(tail_scale)).astype(np.int64)
+        if min_size > 0:
+            sizes = np.maximum(sizes, int(min_size))
+        if max_size > 0:
+            sizes = np.minimum(sizes, int(max_size))
+    else:
+        raise ValueError(f"Unsupported virtual size mode: {mode}")
+
+    return sizes
+
+
+def fit_class_gaussians(x, y, class_num, covariance_type="full", var_floor=1e-4):
+    """
+    Fit class-conditional Gaussian stats from feature matrix x.
+    Returns a dict with arrays to simplify save/load with np.savez.
+    """
+    assert len(set(y)) == class_num, "Training set must include samples from all classes"
+    x = np.asarray(x, dtype=np.float32)
+    y = np.asarray(y, dtype=np.int64)
+    feat_dim = x.shape[1]
+
+    means = np.zeros((class_num, feat_dim), dtype=np.float32)
+    if covariance_type == "diag":
+        cov_diag = np.zeros((class_num, feat_dim), dtype=np.float32)
+        cov_full = None
+    elif covariance_type == "full":
+        cov_diag = None
+        cov_full = np.zeros((class_num, feat_dim, feat_dim), dtype=np.float32)
+    else:
+        raise ValueError(f"Unsupported covariance_type: {covariance_type}")
+
+    global_var = np.var(x, axis=0).astype(np.float32)
+    global_var = np.maximum(global_var, var_floor)
+
+    for cls in range(class_num):
+        class_samples = x[y == cls]
+        mean = np.mean(class_samples, axis=0).astype(np.float32)
+        means[cls] = mean
+
+        if covariance_type == "diag":
+            if len(class_samples) > 1:
+                var = np.var(class_samples, axis=0).astype(np.float32)
+            else:
+                var = global_var.copy()
+            cov_diag[cls] = np.maximum(var, var_floor)
+        else:
+            if len(class_samples) > 1:
+                normed = class_samples - mean
+                covariance = np.matmul(normed.T, normed) / (len(class_samples) - 1)
+            else:
+                covariance = np.diag(global_var)
+            covariance = covariance + np.eye(feat_dim, dtype=np.float32) * var_floor
+            cov_full[cls] = covariance.astype(np.float32)
+
+    stats = {
+        "covariance_type": covariance_type,
+        "means": means,
+        "var_floor": float(var_floor),
+    }
+    if cov_diag is not None:
+        stats["cov_diag"] = cov_diag
+    if cov_full is not None:
+        stats["cov_full"] = cov_full
+    return stats
+
+
+def sample_virtual_representations(stats, class_sizes, rng=None):
+    """
+    Sample synthetic features from pre-fitted class-conditional Gaussian stats.
+    """
+    if rng is None:
+        rng = np.random.default_rng()
+
+    covariance_type = stats["covariance_type"]
+    means = stats["means"]
+    class_sizes = np.asarray(class_sizes, dtype=np.int64)
+    class_num = means.shape[0]
+
     virtual_samples = []
     virtual_labels = []
-    for i in range(class_num):
-        class_samples = x[y == i]
+    for cls in range(class_num):
+        n = int(class_sizes[cls])
+        if n <= 0:
+            continue
+        mean = means[cls]
+        if covariance_type == "diag":
+            std = np.sqrt(stats["cov_diag"][cls])
+            gaussian_samples = mean + rng.standard_normal((n, mean.shape[0])) * std
+        elif covariance_type == "full":
+            gaussian_samples = rng.multivariate_normal(mean, stats["cov_full"][cls], size=n)
+        else:
+            raise ValueError(f"Unsupported covariance_type: {covariance_type}")
 
-        # calculate the mean and covariance of the
-        # Gaussian distribution of the current class
-        mean = np.mean(class_samples, axis=0)
-        normed = class_samples - mean
-        covariance = np.matmul(normed.T, normed) / (len(class_samples) - 1)
+        gaussian_labels = np.full((n,), cls, dtype=np.int64)
+        virtual_samples.append(gaussian_samples.astype(np.float32))
+        virtual_labels.append(gaussian_labels)
 
-        gaussian_samples = np.random.multivariate_normal(mean, covariance, size)
-        gaussian_labels = i * np.ones(size, dtype=np.int64)
-        
-        virtual_samples.extend(gaussian_samples)
-        virtual_labels.extend(gaussian_labels)
+    if not virtual_samples:
+        feat_dim = means.shape[1]
+        return np.zeros((0, feat_dim), dtype=np.float32), np.zeros((0,), dtype=np.int64)
 
-    return np.array(virtual_samples, dtype=np.float32), np.array(virtual_labels)
+    return np.concatenate(virtual_samples, axis=0), np.concatenate(virtual_labels, axis=0)
+
+
+def virtual_representations(x, y, class_num, size=1000):
+    """
+    Backward-compatible API used by the original Stage2 code.
+    """
+    stats = fit_class_gaussians(x, y, class_num, covariance_type="full", var_floor=1e-4)
+    class_sizes = np.full(class_num, int(size), dtype=np.int64)
+    return sample_virtual_representations(stats, class_sizes)

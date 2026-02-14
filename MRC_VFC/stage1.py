@@ -80,8 +80,12 @@ def main(gpu, args, wandb_logger):
         return torch.device("cpu")
 
     if args.reload:
+        checkpoints_root = getattr(args, "checkpoints_root", os.path.dirname(args.checkpoints))
+        teacher_run = args.teacher_run_name if args.teacher_run_name else os.path.basename(args.checkpoints)
+        teacher_epoch = args.teacher_epoch if args.teacher_epoch > 0 else args.epochs
+        teacher_ckpt_dir = os.path.join(checkpoints_root, teacher_run)
         model_fp = os.path.join(
-            args.checkpoints, "epoch_{}_.pth".format(args.epochs)
+            teacher_ckpt_dir, "epoch_{}_.pth".format(teacher_epoch)
         )
         model.load_state_dict(torch.load(model_fp, map_location=_get_map_location()))
 
@@ -93,6 +97,10 @@ def main(gpu, args, wandb_logger):
             param.requires_grad_(False)
         for param in ema_model.parameters():
             param.requires_grad_(False)
+    if args.mix_enable and args.mix_freeze_teacher:
+        if hasattr(model, "encoder"):
+            for param in model.encoder.parameters():
+                param.requires_grad_(False)
 
     aux_vae = None
     lite_vae = None
@@ -114,7 +122,7 @@ def main(gpu, args, wandb_logger):
                 image_size=args.image_size,
             ).to(args.device)
 
-    if args.kd_enable:
+    if args.kd_enable or args.mix_enable or args.lite_eval_enable:
         lite_vae = LiteVAE(
             image_size=args.image_size,
             in_channels=3,
@@ -252,9 +260,13 @@ if __name__ == '__main__':
     args.num_gpus = torch.cuda.device_count()
     args.world_size = args.gpus * args.nodes
 
+    checkpoints_root = args.checkpoints
+    args.checkpoints_root = checkpoints_root
+    if args.student_run_name:
+        args.run_name = args.student_run_name
     if not args.run_name:
         args.run_name = time.strftime("run_%Y%m%d_%H%M%S")
-    args.checkpoints = os.path.join(args.checkpoints, args.run_name)
+    args.checkpoints = os.path.join(checkpoints_root, args.run_name)
 
     # Master address for distributed data parallel
     os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"

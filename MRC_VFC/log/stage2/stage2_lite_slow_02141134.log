@@ -1,0 +1,279 @@
+Stage2 start: 2026-02-14 03:34:50
+feature_source=lite, lite_feature_mode=mu
+loaded_feature_ckpt=./checkpoints/run_20260209_065205_kd_AB/litevae_latest.pth
+epoch 0 virtual: virtual_total=57968.000000, train_total=71408.000000, merge_real=1.000000
+epoch 0 test: acc=0.657976, f1=0.112324, auc=0.666155, bac=0.176088, sens=0.176088, spec=0.890924
+epoch 0 val: acc=0.659618, f1=0.111700, auc=0.634599, bac=0.171718, sens=0.171718, spec=0.891579
+Epoch [0/500] Loss=2.044786 Acc=0.167501
+epoch 1 virtual: virtual_total=58000.000000, train_total=71440.000000, merge_real=1.000000
+epoch 1 test: acc=0.691017, f1=0.167091, auc=0.687691, bac=0.212284, sens=0.212284, spec=0.913409
+epoch 1 val: acc=0.678700, f1=0.160272, auc=0.664502, bac=0.203032, sens=0.203032, spec=0.912355
+Epoch [1/500] Loss=2.011831 Acc=0.185254
+epoch 2 virtual: virtual_total=58024.000000, train_total=71464.000000, merge_real=1.000000
+epoch 2 test: acc=0.677078, f1=0.174795, auc=0.704822, bac=0.236011, sens=0.236011, spec=0.922821
+epoch 2 val: acc=0.665807, f1=0.168332, auc=0.687564, bac=0.217014, sens=0.217014, spec=0.920797
+Epoch [2/500] Loss=1.988089 Acc=0.205315
+epoch 3 virtual: virtual_total=58048.000000, train_total=71488.000000, merge_real=1.000000
+epoch 3 test: acc=0.660041, f1=0.172971, auc=0.716081, bac=0.232057, sens=0.232057, spec=0.925622
+epoch 3 val: acc=0.652914, f1=0.169068, auc=0.702619, bac=0.223640, sens=0.223640, spec=0.925540
+Epoch [3/500] Loss=1.970588 Acc=0.210184
+epoch 4 virtual: virtual_total=57992.000000, train_total=71432.000000, merge_real=1.000000
+epoch 4 test: acc=0.653846, f1=0.171902, auc=0.724725, bac=0.228962, sens=0.228962, spec=0.926882
+epoch 4 val: acc=0.641568, f1=0.167711, auc=0.715295, bac=0.224617, sens=0.224617, spec=0.925649
+Epoch [4/500] Loss=1.954420 Acc=0.215137
+epoch 5 virtual: virtual_total=58120.000000, train_total=71560.000000, merge_real=1.000000
+epoch 5 test: acc=0.648425, f1=0.170150, auc=0.731883, bac=0.224032, sens=0.224032, spec=0.926792
+epoch 5 val: acc=0.638473, f1=0.167396, auc=0.726236, bac=0.224883, sens=0.224883, spec=0.926162
+Epoch [5/500] Loss=1.940631 Acc=0.220061
+epoch 6 virtual: virtual_total=58088.000000, train_total=71528.000000, merge_real=1.000000
+epoch 6 test: acc=0.645586, f1=0.169546, auc=0.737413, bac=0.223639, sens=0.223639, spec=0.926804
+epoch 6 val: acc=0.636411, f1=0.167009, auc=0.734341, bac=0.224495, sens=0.224495, spec=0.926119
+Epoch [6/500] Loss=1.928339 Acc=0.220972
+epoch 7 virtual: virtual_total=58000.000000, train_total=71440.000000, merge_real=1.000000
+epoch 7 test: acc=0.643263, f1=0.169116, auc=0.740966, bac=0.223344, sens=0.223344, spec=0.926710
+epoch 7 val: acc=0.636926, f1=0.167748, auc=0.740431, bac=0.226006, sens=0.226006, spec=0.926870
+Epoch [7/500] Loss=1.915992 Acc=0.227176
+epoch 8 virtual: virtual_total=58080.000000, train_total=71520.000000, merge_real=1.000000
+epoch 8 test: acc=0.642747, f1=0.170122, auc=0.744063, bac=0.228854, sens=0.228854, spec=0.927111
+epoch 8 val: acc=0.635379, f1=0.167177, auc=0.745665, bac=0.225149, sens=0.225149, spec=0.926409
+Epoch [8/500] Loss=1.905347 Acc=0.231548
+epoch 9 virtual: virtual_total=57976.000000, train_total=71416.000000, merge_real=1.000000
+epoch 9 test: acc=0.638100, f1=0.169253, auc=0.745408, bac=0.228405, sens=0.228405, spec=0.927012
+epoch 9 val: acc=0.632800, f1=0.166811, auc=0.748626, bac=0.224947, sens=0.224947, spec=0.926035
+Epoch [9/500] Loss=1.896040 Acc=0.235521
+epoch 10 virtual: virtual_total=58000.000000, train_total=71440.000000, merge_real=1.000000
+epoch 10 test: acc=0.635519, f1=0.168956, auc=0.746556, bac=0.228202, sens=0.228202, spec=0.926962
+epoch 10 val: acc=0.626612, f1=0.164017, auc=0.751514, bac=0.213981, sens=0.213981, spec=0.925128
+Epoch [10/500] Loss=1.886848 Acc=0.240485
+epoch 11 virtual: virtual_total=57968.000000, train_total=71408.000000, merge_real=1.000000
+epoch 11 test: acc=0.633454, f1=0.168821, auc=0.747538, bac=0.228238, sens=0.228238, spec=0.926888
+epoch 11 val: acc=0.625580, f1=0.164164, auc=0.754238, bac=0.214070, sens=0.214070, spec=0.925152
+Epoch [11/500] Loss=1.879060 Acc=0.246410
+epoch 12 virtual: virtual_total=58040.000000, train_total=71480.000000, merge_real=1.000000
+epoch 12 test: acc=0.631905, f1=0.167946, auc=0.748834, bac=0.223046, sens=0.223046, spec=0.926400
+epoch 12 val: acc=0.626096, f1=0.165364, auc=0.757312, bac=0.222837, sens=0.222837, spec=0.925027
+Epoch [12/500] Loss=1.874346 Acc=0.251879
+epoch 13 virtual: virtual_total=58032.000000, train_total=71472.000000, merge_real=1.000000
+epoch 13 test: acc=0.627259, f1=0.167170, auc=0.748144, bac=0.222172, sens=0.222172, spec=0.926149
+epoch 13 val: acc=0.623517, f1=0.165487, auc=0.757514, bac=0.223483, sens=0.223483, spec=0.925504
+Epoch [13/500] Loss=1.866023 Acc=0.252074
+epoch 14 virtual: virtual_total=58032.000000, train_total=71472.000000, merge_real=1.000000
+epoch 14 test: acc=0.623129, f1=0.166369, auc=0.747439, bac=0.221396, sens=0.221396, spec=0.925752
+epoch 14 val: acc=0.624033, f1=0.166846, auc=0.758617, bac=0.225560, sens=0.225560, spec=0.926562
+Epoch [14/500] Loss=1.859935 Acc=0.259840
+epoch 15 virtual: virtual_total=58080.000000, train_total=71520.000000, merge_real=1.000000
+epoch 15 test: acc=0.621064, f1=0.169467, auc=0.746208, bac=0.245676, sens=0.245676, spec=0.925896
+epoch 15 val: acc=0.619907, f1=0.172630, auc=0.758442, bac=0.266353, sens=0.266353, spec=0.926352
+Epoch [15/500] Loss=1.856336 Acc=0.262054
+epoch 16 virtual: virtual_total=57984.000000, train_total=71424.000000, merge_real=1.000000
+epoch 16 test: acc=0.619773, f1=0.169151, auc=0.745293, bac=0.245575, sens=0.245575, spec=0.926187
+epoch 16 val: acc=0.617329, f1=0.171142, auc=0.759229, bac=0.265585, sens=0.265585, spec=0.926248
+Epoch [16/500] Loss=1.848226 Acc=0.270539
+epoch 17 virtual: virtual_total=58072.000000, train_total=71512.000000, merge_real=1.000000
+epoch 17 test: acc=0.617708, f1=0.168593, auc=0.744799, bac=0.244762, sens=0.244762, spec=0.925551
+epoch 17 val: acc=0.616813, f1=0.171057, auc=0.760876, bac=0.265205, sens=0.265205, spec=0.925839
+Epoch [17/500] Loss=1.845805 Acc=0.273029
+epoch 18 virtual: virtual_total=58008.000000, train_total=71448.000000, merge_real=1.000000
+epoch 18 test: acc=0.614352, f1=0.167684, auc=0.744203, bac=0.243565, sens=0.243565, spec=0.925109
+epoch 18 val: acc=0.615266, f1=0.178200, auc=0.762074, bac=0.270383, sens=0.270383, spec=0.925505
+Epoch [18/500] Loss=1.841481 Acc=0.276916
+epoch 19 virtual: virtual_total=58048.000000, train_total=71488.000000, merge_real=1.000000
+epoch 19 test: acc=0.613578, f1=0.167360, auc=0.742824, bac=0.242854, sens=0.242854, spec=0.924552
+epoch 19 val: acc=0.613203, f1=0.177255, auc=0.762973, bac=0.269712, sens=0.269712, spec=0.925260
+Epoch [19/500] Loss=1.838085 Acc=0.281864
+epoch 20 virtual: virtual_total=58040.000000, train_total=71480.000000, merge_real=1.000000
+epoch 20 test: acc=0.609706, f1=0.166416, auc=0.740399, bac=0.238498, sens=0.238498, spec=0.924754
+epoch 20 val: acc=0.609077, f1=0.175561, auc=0.761684, bac=0.268370, sens=0.268370, spec=0.924703
+Epoch [20/500] Loss=1.835973 Acc=0.281824
+epoch 21 virtual: virtual_total=58080.000000, train_total=71520.000000, merge_real=1.000000
+epoch 21 test: acc=0.604801, f1=0.167923, auc=0.738280, bac=0.235089, sens=0.235089, spec=0.923920
+epoch 21 val: acc=0.608045, f1=0.175102, auc=0.760554, bac=0.268458, sens=0.268458, spec=0.924803
+Epoch [21/500] Loss=1.831543 Acc=0.286100
+epoch 22 virtual: virtual_total=58072.000000, train_total=71512.000000, merge_real=1.000000
+epoch 22 test: acc=0.607383, f1=0.168440, auc=0.736843, bac=0.235150, sens=0.235150, spec=0.923992
+epoch 22 val: acc=0.608561, f1=0.171012, auc=0.761843, bac=0.225854, sens=0.225854, spec=0.923810
+Epoch [22/500] Loss=1.836680 Acc=0.289533
+epoch 23 virtual: virtual_total=58136.000000, train_total=71576.000000, merge_real=1.000000
+epoch 23 test: acc=0.599380, f1=0.162867, auc=0.733528, bac=0.226614, sens=0.226614, spec=0.923101
+epoch 23 val: acc=0.597215, f1=0.168584, auc=0.759196, bac=0.223719, sens=0.223719, spec=0.922766
+Epoch [23/500] Loss=1.829585 Acc=0.290693
+epoch 24 virtual: virtual_total=58016.000000, train_total=71456.000000, merge_real=1.000000
+epoch 24 test: acc=0.597832, f1=0.164773, auc=0.731720, bac=0.223977, sens=0.223977, spec=0.922518
+epoch 24 val: acc=0.596699, f1=0.173865, auc=0.759770, bac=0.228525, sens=0.228525, spec=0.922295
+Epoch [24/500] Loss=1.829336 Acc=0.295424
+epoch 25 virtual: virtual_total=58040.000000, train_total=71480.000000, merge_real=1.000000
+epoch 25 test: acc=0.591378, f1=0.172702, auc=0.726818, bac=0.231284, sens=0.231284, spec=0.922316
+epoch 25 val: acc=0.589995, f1=0.172710, auc=0.755505, bac=0.227829, sens=0.227829, spec=0.922076
+Epoch [25/500] Loss=1.829062 Acc=0.297152
+epoch 26 virtual: virtual_total=58016.000000, train_total=71456.000000, merge_real=1.000000
+epoch 26 test: acc=0.594476, f1=0.172086, auc=0.725907, bac=0.230589, sens=0.230589, spec=0.922041
+epoch 26 val: acc=0.593605, f1=0.173565, auc=0.757077, bac=0.228509, sens=0.228509, spec=0.922292
+Epoch [26/500] Loss=1.832056 Acc=0.298870
+epoch 27 virtual: virtual_total=58080.000000, train_total=71520.000000, merge_real=1.000000
+epoch 27 test: acc=0.590862, f1=0.174537, auc=0.722209, bac=0.235445, sens=0.235445, spec=0.921458
+epoch 27 val: acc=0.590511, f1=0.172500, auc=0.754356, bac=0.227643, sens=0.227643, spec=0.921897
+Epoch [27/500] Loss=1.826851 Acc=0.302488
+epoch 28 virtual: virtual_total=58056.000000, train_total=71496.000000, merge_real=1.000000
+epoch 28 test: acc=0.588797, f1=0.180499, auc=0.719574, bac=0.246410, sens=0.246410, spec=0.921728
+epoch 28 val: acc=0.589479, f1=0.171121, auc=0.752650, bac=0.219063, sens=0.219063, spec=0.921984
+Epoch [28/500] Loss=1.826867 Acc=0.303855
+epoch 29 virtual: virtual_total=58016.000000, train_total=71456.000000, merge_real=1.000000
+epoch 29 test: acc=0.583376, f1=0.175192, auc=0.716743, bac=0.238148, sens=0.238148, spec=0.921375
+epoch 29 val: acc=0.578133, f1=0.166683, auc=0.749851, bac=0.207126, sens=0.207126, spec=0.921133
+Epoch [29/500] Loss=1.827295 Acc=0.305301
+epoch 30 virtual: virtual_total=58048.000000, train_total=71488.000000, merge_real=1.000000
+epoch 30 test: acc=0.585183, f1=0.173576, auc=0.715094, bac=0.235225, sens=0.235225, spec=0.921167
+epoch 30 val: acc=0.583290, f1=0.163325, auc=0.749786, bac=0.202345, sens=0.202345, spec=0.921460
+Epoch [30/500] Loss=1.830487 Acc=0.305218
+epoch 31 virtual: virtual_total=58016.000000, train_total=71456.000000, merge_real=1.000000
+epoch 31 test: acc=0.582344, f1=0.175543, auc=0.713073, bac=0.240368, sens=0.240368, spec=0.921221
+epoch 31 val: acc=0.579165, f1=0.162240, auc=0.748513, bac=0.201003, sens=0.201003, spec=0.920907
+Epoch [31/500] Loss=1.831613 Acc=0.304520
+epoch 32 virtual: virtual_total=58048.000000, train_total=71488.000000, merge_real=1.000000
+epoch 32 test: acc=0.584925, f1=0.176774, auc=0.711050, bac=0.241995, sens=0.241995, spec=0.919953
+epoch 32 val: acc=0.582259, f1=0.164872, auc=0.747650, bac=0.202443, sens=0.202443, spec=0.920911
+Epoch [32/500] Loss=1.830010 Acc=0.308705
+epoch 33 virtual: virtual_total=58056.000000, train_total=71496.000000, merge_real=1.000000
+epoch 33 test: acc=0.575891, f1=0.173621, auc=0.708217, bac=0.235455, sens=0.235455, spec=0.919702
+epoch 33 val: acc=0.575554, f1=0.167223, auc=0.745017, bac=0.207216, sens=0.207216, spec=0.920544
+Epoch [33/500] Loss=1.832777 Acc=0.307440
+epoch 34 virtual: virtual_total=58024.000000, train_total=71464.000000, merge_real=1.000000
+epoch 34 test: acc=0.574342, f1=0.175092, auc=0.706061, bac=0.239851, sens=0.239851, spec=0.919274
+epoch 34 val: acc=0.574523, f1=0.165513, auc=0.743615, bac=0.197503, sens=0.197503, spec=0.920571
+Epoch [34/500] Loss=1.839438 Acc=0.305491
+epoch 35 virtual: virtual_total=58072.000000, train_total=71512.000000, merge_real=1.000000
+epoch 35 test: acc=0.566856, f1=0.173077, auc=0.703098, bac=0.241423, sens=0.241423, spec=0.918497
+epoch 35 val: acc=0.569366, f1=0.167152, auc=0.741103, bac=0.201436, sens=0.201436, spec=0.919667
+Epoch [35/500] Loss=1.836971 Acc=0.306349
+epoch 36 virtual: virtual_total=58040.000000, train_total=71480.000000, merge_real=1.000000
+epoch 36 test: acc=0.563500, f1=0.171023, auc=0.701249, bac=0.235891, sens=0.235891, spec=0.918003
+epoch 36 val: acc=0.566787, f1=0.166376, auc=0.739779, bac=0.200951, sens=0.200951, spec=0.918988
+Epoch [36/500] Loss=1.838435 Acc=0.307468
+epoch 37 virtual: virtual_total=58040.000000, train_total=71480.000000, merge_real=1.000000
+epoch 37 test: acc=0.563758, f1=0.172548, auc=0.698722, bac=0.238778, sens=0.238778, spec=0.917807
+epoch 37 val: acc=0.562661, f1=0.165744, auc=0.737444, bac=0.200457, sens=0.200457, spec=0.918251
+Epoch [37/500] Loss=1.842150 Acc=0.303677
+epoch 38 virtual: virtual_total=58072.000000, train_total=71512.000000, merge_real=1.000000
+epoch 38 test: acc=0.548787, f1=0.170602, auc=0.694146, bac=0.242064, sens=0.242064, spec=0.918209
+epoch 38 val: acc=0.541516, f1=0.159042, auc=0.731935, bac=0.187243, sens=0.187243, spec=0.917287
+Epoch [38/500] Loss=1.844862 Acc=0.304868
+epoch 39 virtual: virtual_total=57960.000000, train_total=71400.000000, merge_real=1.000000
+epoch 39 test: acc=0.551110, f1=0.167026, auc=0.692950, bac=0.234620, sens=0.234620, spec=0.917096
+epoch 39 val: acc=0.545126, f1=0.161653, auc=0.730730, bac=0.191976, sens=0.191976, spec=0.916287
+Epoch [39/500] Loss=1.849051 Acc=0.301644
+epoch 40 virtual: virtual_total=58040.000000, train_total=71480.000000, merge_real=1.000000
+epoch 40 test: acc=0.552142, f1=0.166601, auc=0.691946, bac=0.235239, sens=0.235239, spec=0.916787
+epoch 40 val: acc=0.542548, f1=0.157998, auc=0.729444, bac=0.189785, sens=0.189785, spec=0.915143
+Epoch [40/500] Loss=1.849163 Acc=0.303597
+epoch 41 virtual: virtual_total=58056.000000, train_total=71496.000000, merge_real=1.000000
+epoch 41 test: acc=0.543366, f1=0.165434, auc=0.688554, bac=0.233588, sens=0.233588, spec=0.917067
+epoch 41 val: acc=0.532749, f1=0.157162, auc=0.725445, bac=0.188506, sens=0.188506, spec=0.915535
+Epoch [41/500] Loss=1.854578 Acc=0.299231
+epoch 42 virtual: virtual_total=57984.000000, train_total=71424.000000, merge_real=1.000000
+epoch 42 test: acc=0.546205, f1=0.164422, auc=0.686312, bac=0.236323, sens=0.236323, spec=0.916577
+epoch 42 val: acc=0.536875, f1=0.159978, auc=0.722717, bac=0.193337, sens=0.193337, spec=0.915629
+Epoch [42/500] Loss=1.858004 Acc=0.299073
+epoch 43 virtual: virtual_total=58080.000000, train_total=71520.000000, merge_real=1.000000
+epoch 43 test: acc=0.528394, f1=0.162146, auc=0.682810, bac=0.232197, sens=0.232197, spec=0.915554
+epoch 43 val: acc=0.522434, f1=0.154587, auc=0.718587, bac=0.186282, sens=0.186282, spec=0.914570
+Epoch [43/500] Loss=1.861101 Acc=0.299549
+epoch 44 virtual: virtual_total=58048.000000, train_total=71488.000000, merge_real=1.000000
+epoch 44 test: acc=0.542075, f1=0.164927, auc=0.681673, bac=0.236901, sens=0.236901, spec=0.915800
+epoch 44 val: acc=0.537906, f1=0.157010, auc=0.717489, bac=0.188628, sens=0.188628, spec=0.915347
+Epoch [44/500] Loss=1.876496 Acc=0.289704
+epoch 45 virtual: virtual_total=58072.000000, train_total=71512.000000, merge_real=1.000000
+epoch 45 test: acc=0.527104, f1=0.163203, auc=0.678538, bac=0.234368, sens=0.234368, spec=0.914810
+epoch 45 val: acc=0.522950, f1=0.154566, auc=0.712980, bac=0.186380, sens=0.186380, spec=0.914385
+Epoch [45/500] Loss=1.882166 Acc=0.289905
+epoch 46 virtual: virtual_total=57992.000000, train_total=71432.000000, merge_real=1.000000
+epoch 46 test: acc=0.512648, f1=0.161819, auc=0.676003, bac=0.236327, sens=0.236327, spec=0.915076
+epoch 46 val: acc=0.505415, f1=0.148083, auc=0.709612, bac=0.174127, sens=0.174127, spec=0.913654
+Epoch [46/500] Loss=1.882767 Acc=0.288379
+epoch 47 virtual: virtual_total=58064.000000, train_total=71504.000000, merge_real=1.000000
+epoch 47 test: acc=0.526588, f1=0.163966, auc=0.673732, bac=0.212729, sens=0.212729, spec=0.913671
+epoch 47 val: acc=0.521403, f1=0.148574, auc=0.707577, bac=0.171101, sens=0.171101, spec=0.913291
+Epoch [47/500] Loss=1.901340 Acc=0.284057
+epoch 48 virtual: virtual_total=58072.000000, train_total=71512.000000, merge_real=1.000000
+epoch 48 test: acc=0.507228, f1=0.161104, auc=0.670012, bac=0.233893, sens=0.233893, spec=0.913950
+epoch 48 val: acc=0.500258, f1=0.147434, auc=0.703448, bac=0.172025, sens=0.172025, spec=0.912541
+Epoch [48/500] Loss=1.912535 Acc=0.277446
+epoch 49 virtual: virtual_total=58016.000000, train_total=71456.000000, merge_real=1.000000
+epoch 49 test: acc=0.496644, f1=0.160581, auc=0.666607, bac=0.230342, sens=0.230342, spec=0.913270
+epoch 49 val: acc=0.487365, f1=0.144676, auc=0.699753, bac=0.165262, sens=0.165262, spec=0.911534
+Epoch [49/500] Loss=1.925665 Acc=0.274568
+epoch 50 virtual: virtual_total=58080.000000, train_total=71520.000000, merge_real=1.000000
+epoch 50 test: acc=0.501807, f1=0.157394, auc=0.664853, bac=0.204387, sens=0.204387, spec=0.911484
+epoch 50 val: acc=0.501805, f1=0.148396, auc=0.698881, bac=0.170053, sens=0.170053, spec=0.912358
+Epoch [50/500] Loss=1.939832 Acc=0.269499
+epoch 51 virtual: virtual_total=58120.000000, train_total=71560.000000, merge_real=1.000000
+epoch 51 test: acc=0.478317, f1=0.156172, auc=0.662052, bac=0.201169, sens=0.201169, spec=0.912383
+epoch 51 val: acc=0.470861, f1=0.144589, auc=0.695787, bac=0.169699, sens=0.169699, spec=0.910745
+Epoch [51/500] Loss=1.958509 Acc=0.263726
+epoch 52 virtual: virtual_total=58072.000000, train_total=71512.000000, merge_real=1.000000
+epoch 52 test: acc=0.479866, f1=0.157690, auc=0.658660, bac=0.201396, sens=0.201396, spec=0.909502
+epoch 52 val: acc=0.475503, f1=0.143790, auc=0.692607, bac=0.165387, sens=0.165387, spec=0.909172
+Epoch [52/500] Loss=1.967657 Acc=0.259654
+epoch 53 virtual: virtual_total=58048.000000, train_total=71488.000000, merge_real=1.000000
+epoch 53 test: acc=0.440888, f1=0.150290, auc=0.656882, bac=0.192213, sens=0.192213, spec=0.909898
+epoch 53 val: acc=0.440433, f1=0.138869, auc=0.690421, bac=0.154733, sens=0.154733, spec=0.908003
+Epoch [53/500] Loss=2.000658 Acc=0.251590
+epoch 54 virtual: virtual_total=58016.000000, train_total=71456.000000, merge_real=1.000000
+epoch 54 test: acc=0.403201, f1=0.145108, auc=0.652753, bac=0.180872, sens=0.180872, spec=0.907463
+epoch 54 val: acc=0.393502, f1=0.131216, auc=0.686649, bac=0.146184, sens=0.146184, spec=0.903981
+Epoch [54/500] Loss=2.014581 Acc=0.243359
+epoch 55 virtual: virtual_total=58064.000000, train_total=71504.000000, merge_real=1.000000
+epoch 55 test: acc=0.459215, f1=0.152601, auc=0.651758, bac=0.183111, sens=0.183111, spec=0.906563
+epoch 55 val: acc=0.458484, f1=0.141635, auc=0.686444, bac=0.156998, sens=0.156998, spec=0.906858
+Epoch [55/500] Loss=2.043464 Acc=0.238652
+epoch 56 virtual: virtual_total=58016.000000, train_total=71456.000000, merge_real=1.000000
+epoch 56 test: acc=0.361642, f1=0.135588, auc=0.650665, bac=0.186927, sens=0.186927, spec=0.903850
+epoch 56 val: acc=0.359464, f1=0.125316, auc=0.684906, bac=0.139779, sens=0.139779, spec=0.900807
+Epoch [56/500] Loss=2.072338 Acc=0.229994
+epoch 57 virtual: virtual_total=58048.000000, train_total=71488.000000, merge_real=1.000000
+epoch 57 test: acc=0.410428, f1=0.142247, auc=0.646927, bac=0.162514, sens=0.162514, spec=0.904342
+epoch 57 val: acc=0.414131, f1=0.134970, auc=0.682182, bac=0.142900, sens=0.142900, spec=0.903573
+Epoch [57/500] Loss=2.096621 Acc=0.219587
+epoch 58 virtual: virtual_total=58072.000000, train_total=71512.000000, merge_real=1.000000
+epoch 58 test: acc=0.202375, f1=0.099010, auc=0.646239, bac=0.200452, sens=0.200452, spec=0.891075
+epoch 58 val: acc=0.199072, f1=0.091594, auc=0.681293, bac=0.201358, sens=0.201358, spec=0.889512
+Epoch [58/500] Loss=2.105276 Acc=0.220484
+epoch 59 virtual: virtual_total=57992.000000, train_total=71432.000000, merge_real=1.000000
+epoch 59 test: acc=0.277749, f1=0.118569, auc=0.643332, bac=0.161078, sens=0.161078, spec=0.895657
+epoch 59 val: acc=0.279526, f1=0.109342, auc=0.678705, bac=0.150986, sens=0.150986, spec=0.894981
+Epoch [59/500] Loss=2.137610 Acc=0.217285
+epoch 60 virtual: virtual_total=58048.000000, train_total=71488.000000, merge_real=1.000000
+epoch 60 test: acc=0.198761, f1=0.102190, auc=0.641387, bac=0.197777, sens=0.197777, spec=0.890240
+epoch 60 val: acc=0.202682, f1=0.101275, auc=0.677481, bac=0.210997, sens=0.210997, spec=0.889480
+Epoch [60/500] Loss=2.167901 Acc=0.206292
+epoch 61 virtual: virtual_total=58064.000000, train_total=71504.000000, merge_real=1.000000
+epoch 61 test: acc=0.331699, f1=0.129320, auc=0.640773, bac=0.170805, sens=0.170805, spec=0.897737
+epoch 61 val: acc=0.341413, f1=0.123324, auc=0.676975, bac=0.133836, sens=0.133836, spec=0.897609
+Epoch [61/500] Loss=2.187158 Acc=0.203432
+epoch 62 virtual: virtual_total=58088.000000, train_total=71528.000000, merge_real=1.000000
+epoch 62 test: acc=0.129840, f1=0.079569, auc=0.638137, bac=0.163904, sens=0.163904, spec=0.884832
+epoch 62 val: acc=0.139247, f1=0.078320, auc=0.674959, bac=0.217576, sens=0.217576, spec=0.886270
+Epoch [62/500] Loss=2.213659 Acc=0.194841
+epoch 63 virtual: virtual_total=58032.000000, train_total=71472.000000, merge_real=1.000000
+epoch 63 test: acc=0.307176, f1=0.118878, auc=0.639002, bac=0.164552, sens=0.164552, spec=0.894592
+epoch 63 val: acc=0.305828, f1=0.113183, auc=0.674731, bac=0.124217, sens=0.124217, spec=0.893337
+Epoch [63/500] Loss=2.229846 Acc=0.190895
+epoch 64 virtual: virtual_total=57984.000000, train_total=71424.000000, merge_real=1.000000
+epoch 64 test: acc=0.198761, f1=0.103784, auc=0.635196, bac=0.150548, sens=0.150548, spec=0.889490
+epoch 64 val: acc=0.202682, f1=0.098155, auc=0.671538, bac=0.168630, sens=0.168630, spec=0.889020
+Epoch [64/500] Loss=2.243279 Acc=0.194038
+epoch 65 virtual: virtual_total=58000.000000, train_total=71440.000000, merge_real=1.000000
+epoch 65 test: acc=0.293753, f1=0.117471, auc=0.636578, bac=0.150120, sens=0.150120, spec=0.893817
+epoch 65 val: acc=0.300670, f1=0.111990, auc=0.671750, bac=0.141765, sens=0.141765, spec=0.893783
+Epoch [65/500] Loss=2.263802 Acc=0.187277
+epoch 66 virtual: virtual_total=58048.000000, train_total=71488.000000, merge_real=1.000000
+epoch 66 test: acc=0.401910, f1=0.137087, auc=0.635333, bac=0.154382, sens=0.154382, spec=0.898115
+epoch 66 val: acc=0.409489, f1=0.131134, auc=0.670909, bac=0.136558, sens=0.136558, spec=0.898238
+Epoch [66/500] Loss=2.275847 Acc=0.185017
+epoch 67 virtual: virtual_total=58056.000000, train_total=71496.000000, merge_real=1.000000
+epoch 67 test: acc=0.221477, f1=0.106097, auc=0.633570, bac=0.142660, sens=0.142660, spec=0.890607
+epoch 67 val: acc=0.218669, f1=0.102925, auc=0.670014, bac=0.147519, sens=0.147519, spec=0.889140
+Epoch [67/500] Loss=2.281623 Acc=0.183992
+epoch 68 virtual: virtual_total=58024.000000, train_total=71464.000000, merge_real=1.000000
+epoch 68 test: acc=0.140681, f1=0.079505, auc=0.633547, bac=0.173237, sens=0.173237, spec=0.885455
+epoch 68 val: acc=0.144404, f1=0.074323, auc=0.669272, bac=0.217887, sens=0.217887, spec=0.886108
+Epoch [68/500] Loss=2.276208 Acc=0.183929

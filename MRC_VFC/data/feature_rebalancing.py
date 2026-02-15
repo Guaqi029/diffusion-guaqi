@@ -42,7 +42,15 @@ def compute_virtual_class_sizes(
     return sizes
 
 
-def fit_class_gaussians(x, y, class_num, covariance_type="full", var_floor=1e-4):
+def fit_class_gaussians(
+    x,
+    y,
+    class_num,
+    covariance_type="full",
+    var_floor=1e-4,
+    full_min_samples=32,
+    full_shrinkage=0.1,
+):
     """
     Fit class-conditional Gaussian stats from feature matrix x.
     Returns a dict with arrays to simplify save/load with np.savez.
@@ -77,11 +85,21 @@ def fit_class_gaussians(x, y, class_num, covariance_type="full", var_floor=1e-4)
                 var = global_var.copy()
             cov_diag[cls] = np.maximum(var, var_floor)
         else:
-            if len(class_samples) > 1:
-                normed = class_samples - mean
-                covariance = np.matmul(normed.T, normed) / (len(class_samples) - 1)
+            n = len(class_samples)
+            class_var = np.var(class_samples, axis=0).astype(np.float32) if n > 1 else global_var.copy()
+            class_var = np.maximum(class_var, var_floor)
+            diag_cov = np.diag(class_var)
+
+            # For extreme long-tail classes (n << d), full covariance is unstable.
+            # Fall back to diagonal covariance in matrix form to avoid singular sampling.
+            if n <= max(2, feat_dim) or n < int(full_min_samples):
+                covariance = diag_cov
             else:
-                covariance = np.diag(global_var)
+                normed = class_samples - mean
+                empirical = np.matmul(normed.T, normed) / (n - 1)
+                shrink = float(np.clip(full_shrinkage, 0.0, 1.0))
+                covariance = (1.0 - shrink) * empirical + shrink * diag_cov
+
             covariance = covariance + np.eye(feat_dim, dtype=np.float32) * var_floor
             cov_full[cls] = covariance.astype(np.float32)
 
@@ -139,6 +157,6 @@ def virtual_representations(x, y, class_num, size=1000):
     """
     Backward-compatible API used by the original Stage2 code.
     """
-    stats = fit_class_gaussians(x, y, class_num, covariance_type="full", var_floor=1e-4)
+    stats = fit_class_gaussians(x, y, class_num, covariance_type="diag", var_floor=1e-4)
     class_sizes = np.full(class_num, int(size), dtype=np.int64)
     return sample_virtual_representations(stats, class_sizes)

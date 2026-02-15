@@ -1,0 +1,782 @@
+epoch=1 iter=10 train: total=1.885712, prob=0.155550, batch=0.045780, channel=0.013957, cls=0.858088, gauss=0.000000, aux_recon=0.995295, aux_kl=0.323296
+epoch=1 test: acc=0.715281, f1=0.196842, auc=0.760739, bac=0.208485, sens=0.208485, spec=0.914528
+epoch=1 val: acc=0.710676, f1=0.190199, auc=0.776282, bac=0.207311, sens=0.207311, spec=0.913569
+epoch=1 iter=20 train: total=1.860920, prob=0.215316, batch=0.058023, channel=0.012697, cls=0.869636, gauss=0.000000, aux_recon=0.964809, aux_kl=0.264746
+epoch=1 test: acc=0.730511, f1=0.241340, auc=0.815049, bac=0.254767, sens=0.254767, spec=0.937538
+epoch=1 val: acc=0.716864, f1=0.236273, auc=0.831132, bac=0.248362, sens=0.248362, spec=0.934435
+epoch=2 iter=4 train: total=1.844362, prob=0.117693, batch=0.051627, channel=0.012630, cls=0.930862, gauss=0.000000, aux_recon=0.894026, aux_kl=0.194734
+epoch=2 test: acc=0.757357, f1=0.266297, auc=0.831821, bac=0.251698, sens=0.251698, spec=0.930164
+epoch=2 val: acc=0.745745, f1=0.262566, auc=0.839956, bac=0.250414, sens=0.250414, spec=0.928788
+epoch=2 iter=14 train: total=1.504456, prob=0.133009, batch=0.044597, channel=0.012188, cls=0.603651, gauss=0.000000, aux_recon=0.883406, aux_kl=0.173998
+epoch=2 test: acc=0.768973, f1=0.259347, auc=0.851969, bac=0.253377, sens=0.253377, spec=0.932349
+epoch=2 val: acc=0.755028, f1=0.247595, auc=0.854614, bac=0.245746, sens=0.245746, spec=0.930000
+epoch=2 iter=24 train: total=1.712214, prob=0.158602, batch=0.045414, channel=0.013361, cls=0.871495, gauss=0.000000, aux_recon=0.825401, aux_kl=0.153187
+epoch=2 test: acc=0.771296, f1=0.282583, auc=0.861530, bac=0.296033, sens=0.296033, spec=0.945389
+epoch=2 val: acc=0.765343, f1=0.281181, auc=0.869009, bac=0.295419, sens=0.295419, spec=0.945037
+epoch=3 iter=8 train: total=1.504256, prob=0.147167, batch=0.038158, channel=0.010599, cls=0.593876, gauss=0.000000, aux_recon=0.895742, aux_kl=0.146372
+epoch=3 test: acc=0.780589, f1=0.299110, auc=0.876882, bac=0.297960, sens=0.297960, spec=0.941762
+epoch=3 val: acc=0.773079, f1=0.294013, auc=0.882955, bac=0.291397, sens=0.291397, spec=0.939007
+epoch=3 iter=18 train: total=1.399297, prob=0.132891, batch=0.038155, channel=0.013608, cls=0.552017, gauss=0.000000, aux_recon=0.833532, aux_kl=0.137479
+epoch=3 test: acc=0.782912, f1=0.300124, auc=0.887574, bac=0.298440, sens=0.298440, spec=0.943240
+epoch=3 val: acc=0.775658, f1=0.295979, auc=0.896099, bac=0.294410, sens=0.294410, spec=0.941726
+epoch=4 iter=2 train: total=1.614415, prob=0.132346, batch=0.034811, channel=0.011304, cls=0.689033, gauss=0.000000, aux_recon=0.911331, aux_kl=0.140508
+epoch=4 test: acc=0.784977, f1=0.306098, auc=0.893077, bac=0.311045, sens=0.311045, spec=0.947887
+epoch=4 val: acc=0.769469, f1=0.289638, auc=0.906744, bac=0.297087, sens=0.297087, spec=0.944840
+epoch=4 iter=12 train: total=1.384670, prob=0.159609, batch=0.034366, channel=0.010417, cls=0.575648, gauss=0.000000, aux_recon=0.795335, aux_kl=0.136865
+epoch=4 test: acc=0.776975, f1=0.315518, auc=0.897712, bac=0.314732, sens=0.314732, spec=0.948435
+epoch=4 val: acc=0.771532, f1=0.315781, auc=0.899503, bac=0.311931, sens=0.311931, spec=0.947485
+epoch=4 iter=22 train: total=1.552827, prob=0.114227, batch=0.036522, channel=0.008697, cls=0.690936, gauss=0.000000, aux_recon=0.849457, aux_kl=0.124345
+epoch=4 test: acc=0.786784, f1=0.309409, auc=0.902185, bac=0.303779, sens=0.303779, spec=0.945462
+epoch=4 val: acc=0.780299, f1=0.302848, auc=0.913181, bac=0.298025, sens=0.298025, spec=0.943919
+epoch=5 iter=6 train: total=1.471570, prob=0.157518, batch=0.033514, channel=0.009736, cls=0.689513, gauss=0.000000, aux_recon=0.769931, aux_kl=0.121265
+epoch=5 test: acc=0.783944, f1=0.307738, auc=0.906298, bac=0.300644, sens=0.300644, spec=0.939429
+epoch=5 val: acc=0.783909, f1=0.302064, auc=0.917602, bac=0.296327, sens=0.296327, spec=0.939296
+epoch=5 iter=16 train: total=1.525198, prob=0.121903, batch=0.036448, channel=0.008512, cls=0.661485, gauss=0.000000, aux_recon=0.851618, aux_kl=0.120948
+epoch=5 test: acc=0.788074, f1=0.313204, auc=0.907988, bac=0.304654, sens=0.304654, spec=0.939656
+epoch=5 val: acc=0.779268, f1=0.296549, auc=0.915572, bac=0.292428, sens=0.292428, spec=0.937800
+epoch=5 iter=26 train: total=1.385674, prob=0.102080, batch=0.030166, channel=0.009329, cls=0.534635, gauss=0.000000, aux_recon=0.839227, aux_kl=0.118116
+epoch=5 test: acc=0.781105, f1=0.295388, auc=0.910143, bac=0.281068, sens=0.281068, spec=0.934420
+epoch=5 val: acc=0.784425, f1=0.315009, auc=0.916414, bac=0.297366, sens=0.297366, spec=0.936842
+epoch=6 iter=10 train: total=1.471905, prob=0.125744, batch=0.034945, channel=0.009208, cls=0.557995, gauss=0.000000, aux_recon=0.901977, aux_kl=0.119332
+epoch=6 test: acc=0.795302, f1=0.318344, auc=0.904325, bac=0.309558, sens=0.309558, spec=0.946627
+epoch=6 val: acc=0.793708, f1=0.315782, auc=0.915955, bac=0.309241, sens=0.309241, spec=0.945764
+epoch=6 iter=20 train: total=1.450517, prob=0.127895, batch=0.032700, channel=0.008678, cls=0.572084, gauss=0.000000, aux_recon=0.867216, aux_kl=0.112167
+epoch=6 test: acc=0.788591, f1=0.336356, auc=0.910287, bac=0.332691, sens=0.332691, spec=0.951572
+epoch=6 val: acc=0.784941, f1=0.332572, auc=0.918277, bac=0.327517, sens=0.327517, spec=0.950858
+epoch=7 iter=4 train: total=1.452080, prob=0.156019, batch=0.031122, channel=0.010726, cls=0.564256, gauss=0.000000, aux_recon=0.876545, aux_kl=0.112790
+epoch=7 test: acc=0.791946, f1=0.335294, auc=0.914202, bac=0.338376, sens=0.338376, spec=0.948323
+epoch=7 val: acc=0.789582, f1=0.327191, auc=0.922173, bac=0.331856, sens=0.331856, spec=0.947783
+epoch=7 iter=14 train: total=1.328385, prob=0.199363, batch=0.037021, channel=0.008834, cls=0.540443, gauss=0.000000, aux_recon=0.776650, aux_kl=0.112910
+epoch=7 test: acc=0.790914, f1=0.308293, auc=0.908045, bac=0.301987, sens=0.301987, spec=0.940291
+epoch=7 val: acc=0.782362, f1=0.289854, auc=0.923824, bac=0.291008, sens=0.291008, spec=0.938514
+epoch=7 iter=24 train: total=1.585808, prob=0.166266, batch=0.035220, channel=0.007466, cls=0.749836, gauss=0.000000, aux_recon=0.824738, aux_kl=0.112349
+epoch=7 test: acc=0.795044, f1=0.333904, auc=0.912173, bac=0.312799, sens=0.312799, spec=0.945744
+epoch=7 val: acc=0.784941, f1=0.320040, auc=0.922191, bac=0.303175, sens=0.303175, spec=0.943352
+epoch=8 iter=8 train: total=1.548598, prob=0.145730, batch=0.031957, channel=0.007476, cls=0.667990, gauss=0.000000, aux_recon=0.869596, aux_kl=0.110117
+epoch=8 test: acc=0.751162, f1=0.324814, auc=0.911377, bac=0.345452, sens=0.345452, spec=0.953537
+epoch=8 val: acc=0.759154, f1=0.320963, auc=0.921802, bac=0.345647, sens=0.345647, spec=0.954806
+epoch=8 iter=18 train: total=1.533301, prob=0.147099, batch=0.032004, channel=0.007557, cls=0.649895, gauss=0.000000, aux_recon=0.872470, aux_kl=0.109366
+epoch=8 test: acc=0.803046, f1=0.344430, auc=0.921785, bac=0.330849, sens=0.330849, spec=0.946109
+epoch=8 val: acc=0.792677, f1=0.329343, auc=0.930284, bac=0.316202, sens=0.316202, spec=0.943909
+epoch=9 iter=2 train: total=1.353673, prob=0.143835, batch=0.035410, channel=0.007166, cls=0.525830, gauss=0.000000, aux_recon=0.817194, aux_kl=0.106487
+epoch=9 test: acc=0.792979, f1=0.333462, auc=0.920607, bac=0.312359, sens=0.312359, spec=0.939985
+epoch=9 val: acc=0.794740, f1=0.330448, auc=0.926735, bac=0.313671, sens=0.313671, spec=0.940701
+epoch=9 iter=12 train: total=1.367019, prob=0.133249, batch=0.029695, channel=0.007403, cls=0.497439, gauss=0.000000, aux_recon=0.859398, aux_kl=0.101817
+epoch=9 test: acc=0.800723, f1=0.323103, auc=0.921761, bac=0.311935, sens=0.311935, spec=0.942203
+epoch=9 val: acc=0.792161, f1=0.311667, auc=0.928064, bac=0.304209, sens=0.304209, spec=0.940302
+epoch=9 iter=22 train: total=1.529164, prob=0.164781, batch=0.026598, channel=0.006877, cls=0.724762, gauss=0.000000, aux_recon=0.793868, aux_kl=0.105341
+epoch=9 test: acc=0.790914, f1=0.361718, auc=0.913887, bac=0.333045, sens=0.333045, spec=0.937689
+epoch=9 val: acc=0.787519, f1=0.318685, auc=0.928426, bac=0.311015, sens=0.311015, spec=0.937850
+epoch=10 iter=6 train: total=1.428092, prob=0.121822, batch=0.035584, channel=0.007018, cls=0.587305, gauss=0.000000, aux_recon=0.830010, aux_kl=0.107773
+epoch=10 test: acc=0.811048, f1=0.374087, auc=0.926275, bac=0.358813, sens=0.358813, spec=0.955860
+epoch=10 val: acc=0.795771, f1=0.370858, auc=0.932319, bac=0.357365, sens=0.357365, spec=0.952692
+epoch=10 iter=16 train: total=1.286160, prob=0.150306, batch=0.033334, channel=0.006802, cls=0.493074, gauss=0.000000, aux_recon=0.781858, aux_kl=0.112285
+epoch=10 test: acc=0.809757, f1=0.375550, auc=0.923975, bac=0.348965, sens=0.348965, spec=0.949179
+epoch=10 val: acc=0.808664, f1=0.356441, auc=0.935622, bac=0.340482, sens=0.340482, spec=0.948844
+epoch=10 iter=26 train: total=1.500336, prob=0.132210, batch=0.035095, channel=0.007569, cls=0.634526, gauss=0.000000, aux_recon=0.856109, aux_kl=0.097004
+epoch=10 test: acc=0.803304, f1=0.371624, auc=0.923725, bac=0.337886, sens=0.337886, spec=0.941166
+epoch=10 val: acc=0.795771, f1=0.364331, auc=0.932197, bac=0.331394, sens=0.331394, spec=0.939358
+epoch=11 iter=10 train: total=1.451836, prob=0.150586, batch=0.036791, channel=0.007403, cls=0.591564, gauss=0.000000, aux_recon=0.849739, aux_kl=0.105330
+epoch=11 test: acc=0.816469, f1=0.422645, auc=0.927074, bac=0.387416, sens=0.387416, spec=0.951305
+epoch=11 val: acc=0.801444, f1=0.378148, auc=0.934887, bac=0.352101, sens=0.352101, spec=0.947903
+epoch=11 iter=20 train: total=1.511416, prob=0.150616, batch=0.037835, channel=0.006087, cls=0.591078, gauss=0.000000, aux_recon=0.910271, aux_kl=0.100670
+epoch=11 test: acc=0.818018, f1=0.397243, auc=0.927988, bac=0.369145, sens=0.369145, spec=0.950653
+epoch=11 val: acc=0.806086, f1=0.343641, auc=0.937694, bac=0.332202, sens=0.332202, spec=0.947794
+epoch=12 iter=4 train: total=1.386629, prob=0.174216, batch=0.032966, channel=0.007635, cls=0.547588, gauss=0.000000, aux_recon=0.828939, aux_kl=0.101018
+epoch=12 test: acc=0.813113, f1=0.356924, auc=0.933653, bac=0.347502, sens=0.347502, spec=0.948885
+epoch=12 val: acc=0.802476, f1=0.348699, auc=0.933612, bac=0.343001, sens=0.343001, spec=0.947948
+epoch=12 iter=14 train: total=1.498545, prob=0.135587, batch=0.033951, channel=0.007332, cls=0.658996, gauss=0.000000, aux_recon=0.830255, aux_kl=0.092943
+epoch=12 test: acc=0.811822, f1=0.408721, auc=0.928839, bac=0.386070, sens=0.386070, spec=0.951444
+epoch=12 val: acc=0.819495, f1=0.350238, auc=0.930275, bac=0.354856, sens=0.354856, spec=0.953014
+epoch=12 iter=24 train: total=1.366561, prob=0.154126, batch=0.029518, channel=0.006288, cls=0.500825, gauss=0.000000, aux_recon=0.855605, aux_kl=0.101308
+epoch=12 test: acc=0.816727, f1=0.419934, auc=0.927819, bac=0.386471, sens=0.386471, spec=0.951790
+epoch=12 val: acc=0.807633, f1=0.424236, auc=0.936832, bac=0.399109, sens=0.399109, spec=0.949914
+epoch=13 iter=8 train: total=1.587995, prob=0.195714, batch=0.030235, channel=0.005897, cls=0.663864, gauss=0.000000, aux_recon=0.914344, aux_kl=0.097866
+epoch=13 test: acc=0.819824, f1=0.434205, auc=0.927572, bac=0.399145, sens=0.399145, spec=0.953058
+epoch=13 val: acc=0.814337, f1=0.401436, auc=0.939781, bac=0.381857, sens=0.381857, spec=0.953308
+epoch=13 iter=18 train: total=1.426577, prob=0.171985, batch=0.031820, channel=0.006485, cls=0.504940, gauss=0.000000, aux_recon=0.912350, aux_kl=0.092866
+epoch=13 test: acc=0.807950, f1=0.400416, auc=0.932950, bac=0.362954, sens=0.362954, spec=0.950565
+epoch=13 val: acc=0.806601, f1=0.366761, auc=0.939145, bac=0.341461, sens=0.341461, spec=0.949208
+epoch=14 iter=2 train: total=1.522801, prob=0.159750, batch=0.027774, channel=0.006454, cls=0.664792, gauss=0.000000, aux_recon=0.848047, aux_kl=0.099622
+epoch=14 test: acc=0.821890, f1=0.420946, auc=0.932466, bac=0.389431, sens=0.389431, spec=0.957169
+epoch=14 val: acc=0.814853, f1=0.445912, auc=0.940385, bac=0.415715, sens=0.415715, spec=0.955700
+epoch=14 iter=12 train: total=1.609228, prob=0.148808, batch=0.033678, channel=0.006757, cls=0.728273, gauss=0.000000, aux_recon=0.871285, aux_kl=0.096703
+epoch=14 test: acc=0.827052, f1=0.437047, auc=0.932378, bac=0.412998, sens=0.412998, spec=0.958854
+epoch=14 val: acc=0.817432, f1=0.446825, auc=0.938703, bac=0.426513, sens=0.426513, spec=0.956716
+epoch=14 iter=22 train: total=1.477145, prob=0.150059, batch=0.033751, channel=0.006611, cls=0.632784, gauss=0.000000, aux_recon=0.834914, aux_kl=0.094468
+epoch=14 test: acc=0.816985, f1=0.408349, auc=0.935661, bac=0.388537, sens=0.388537, spec=0.957645
+epoch=14 val: acc=0.805054, f1=0.392212, auc=0.941093, bac=0.378037, sens=0.378037, spec=0.955727
+epoch=15 iter=6 train: total=1.416042, prob=0.185594, batch=0.030975, channel=0.006834, cls=0.562359, gauss=0.000000, aux_recon=0.844135, aux_kl=0.095474
+epoch=15 test: acc=0.807692, f1=0.420814, auc=0.925139, bac=0.391531, sens=0.391531, spec=0.954272
+epoch=15 val: acc=0.794224, f1=0.414087, auc=0.936265, bac=0.390305, sens=0.390305, spec=0.951679
+epoch=15 iter=16 train: total=1.446221, prob=0.161152, batch=0.035710, channel=0.007095, cls=0.593836, gauss=0.000000, aux_recon=0.842532, aux_kl=0.098538
+epoch=15 test: acc=0.818018, f1=0.412117, auc=0.927184, bac=0.379543, sens=0.379543, spec=0.952289
+epoch=15 val: acc=0.807117, f1=0.396303, auc=0.936680, bac=0.368864, sens=0.368864, spec=0.949999
+epoch=15 iter=26 train: total=1.244674, prob=0.176420, batch=0.036850, channel=0.006937, cls=0.415888, gauss=0.000000, aux_recon=0.818884, aux_kl=0.099024
+epoch=15 test: acc=0.809757, f1=0.428427, auc=0.932157, bac=0.377024, sens=0.377024, spec=0.944390
+epoch=15 val: acc=0.811243, f1=0.426434, auc=0.937531, bac=0.390256, sens=0.390256, spec=0.946911
+epoch=16 iter=10 train: total=1.256026, prob=0.145124, batch=0.031646, channel=0.005932, cls=0.410409, gauss=0.000000, aux_recon=0.836383, aux_kl=0.092337
+epoch=16 test: acc=0.818018, f1=0.441886, auc=0.934997, bac=0.405408, sens=0.405408, spec=0.952787
+epoch=16 val: acc=0.814853, f1=0.480853, auc=0.936665, bac=0.435651, sens=0.435651, spec=0.951996
+epoch=16 iter=20 train: total=1.432448, prob=0.189449, batch=0.036512, channel=0.005720, cls=0.573158, gauss=0.000000, aux_recon=0.850462, aux_kl=0.088272
+epoch=16 test: acc=0.826278, f1=0.436739, auc=0.937778, bac=0.399467, sens=0.399467, spec=0.955154
+epoch=16 val: acc=0.816400, f1=0.444460, auc=0.939542, bac=0.413655, sens=0.413655, spec=0.953693
+epoch=17 iter=4 train: total=1.275877, prob=0.186786, batch=0.034280, channel=0.005847, cls=0.380691, gauss=0.000000, aux_recon=0.886231, aux_kl=0.089542
+epoch=17 test: acc=0.818792, f1=0.437385, auc=0.938151, bac=0.411066, sens=0.411066, spec=0.959788
+epoch=17 val: acc=0.819495, f1=0.458607, auc=0.942192, bac=0.430771, sens=0.430771, spec=0.959299
+epoch=17 iter=14 train: total=1.409729, prob=0.181325, batch=0.031429, channel=0.006089, cls=0.554587, gauss=0.000000, aux_recon=0.845931, aux_kl=0.092116
+epoch=17 test: acc=0.813629, f1=0.449571, auc=0.931934, bac=0.415516, sens=0.415516, spec=0.958500
+epoch=17 val: acc=0.815884, f1=0.484387, auc=0.944085, bac=0.447221, sens=0.447221, spec=0.959542
+epoch=17 iter=24 train: total=1.355330, prob=0.168701, batch=0.035383, channel=0.005836, cls=0.473416, gauss=0.000000, aux_recon=0.872851, aux_kl=0.090637
+epoch=17 test: acc=0.818792, f1=0.466997, auc=0.935047, bac=0.435398, sens=0.435398, spec=0.960709
+epoch=17 val: acc=0.804023, f1=0.469334, auc=0.941808, bac=0.437103, sens=0.437103, spec=0.957839
+epoch=18 iter=8 train: total=1.193862, prob=0.183976, batch=0.034633, channel=0.006464, cls=0.316770, gauss=0.000000, aux_recon=0.867808, aux_kl=0.092840
+epoch=18 test: acc=0.800723, f1=0.439843, auc=0.933840, bac=0.416984, sens=0.416984, spec=0.959198
+epoch=18 val: acc=0.798865, f1=0.457510, auc=0.938286, bac=0.440998, sens=0.440998, spec=0.959256
+epoch=18 iter=18 train: total=1.496067, prob=0.149396, batch=0.037082, channel=0.006491, cls=0.609373, gauss=0.000000, aux_recon=0.877765, aux_kl=0.089290
+epoch=18 test: acc=0.816985, f1=0.448907, auc=0.935948, bac=0.401845, sens=0.401845, spec=0.949285
+epoch=18 val: acc=0.805054, f1=0.454228, auc=0.937377, bac=0.407948, sens=0.407948, spec=0.945703
+epoch=19 iter=2 train: total=1.364668, prob=0.176976, batch=0.029841, channel=0.005442, cls=0.483528, gauss=0.000000, aux_recon=0.872474, aux_kl=0.086647
+epoch=19 test: acc=0.815178, f1=0.429497, auc=0.939374, bac=0.404625, sens=0.404625, spec=0.955303
+epoch=19 val: acc=0.811759, f1=0.471232, auc=0.936847, bac=0.442779, sens=0.442779, spec=0.954275
+epoch=19 iter=12 train: total=1.355512, prob=0.230835, batch=0.031592, channel=0.005638, cls=0.431548, gauss=0.000000, aux_recon=0.915178, aux_kl=0.087856
+epoch=19 test: acc=0.812855, f1=0.434878, auc=0.933810, bac=0.401632, sens=0.401632, spec=0.957362
+epoch=19 val: acc=0.801444, f1=0.456400, auc=0.936751, bac=0.424046, sens=0.424046, spec=0.954377
+epoch=19 iter=22 train: total=1.279919, prob=0.186589, batch=0.029856, channel=0.005855, cls=0.359974, gauss=0.000000, aux_recon=0.910790, aux_kl=0.091537
+epoch=19 test: acc=0.815178, f1=0.454376, auc=0.935116, bac=0.427721, sens=0.427721, spec=0.960387
+epoch=19 val: acc=0.807117, f1=0.481945, auc=0.940856, bac=0.451746, sens=0.451746, spec=0.959071
+epoch=20 iter=6 train: total=1.203153, prob=0.169629, batch=0.032376, channel=0.006088, cls=0.352637, gauss=0.000000, aux_recon=0.841623, aux_kl=0.088941
+epoch=20 test: acc=0.824471, f1=0.447258, auc=0.930563, bac=0.430432, sens=0.430432, spec=0.959594
+epoch=20 val: acc=0.809696, f1=0.487339, auc=0.938866, bac=0.457479, sens=0.457479, spec=0.954965
+epoch=20 iter=16 train: total=1.076889, prob=0.229322, batch=0.031493, channel=0.006004, cls=0.281168, gauss=0.000000, aux_recon=0.787228, aux_kl=0.084918
+epoch=20 test: acc=0.818534, f1=0.469396, auc=0.942675, bac=0.432203, sens=0.432203, spec=0.958340
+epoch=20 val: acc=0.813822, f1=0.474929, auc=0.942817, bac=0.435872, sens=0.435872, spec=0.957540
+epoch=20 iter=26 train: total=1.318200, prob=0.184249, batch=0.030354, channel=0.005477, cls=0.485978, gauss=0.000000, aux_recon=0.822697, aux_kl=0.095240
+epoch=20 test: acc=0.810274, f1=0.444953, auc=0.933603, bac=0.415948, sens=0.415948, spec=0.959294
+epoch=20 val: acc=0.809180, f1=0.496448, auc=0.940760, bac=0.457933, sens=0.457933, spec=0.959733
+epoch=21 iter=10 train: total=1.398938, prob=0.199717, batch=0.027387, channel=0.005718, cls=0.517334, gauss=0.585987, aux_recon=0.814323, aux_kl=0.086821
+epoch=21 test: acc=0.828085, f1=0.464111, auc=0.929123, bac=0.416956, sens=0.416956, spec=0.953027
+epoch=21 val: acc=0.811759, f1=0.436491, auc=0.941283, bac=0.391755, sens=0.391755, spec=0.948425
+epoch=21 iter=20 train: total=1.333697, prob=0.196755, batch=0.030128, channel=0.005860, cls=0.414549, gauss=0.520800, aux_recon=0.858563, aux_kl=0.085052
+epoch=21 test: acc=0.829892, f1=0.453841, auc=0.933707, bac=0.424441, sens=0.424441, spec=0.958719
+epoch=21 val: acc=0.825168, f1=0.479749, auc=0.938316, bac=0.453180, sens=0.453180, spec=0.957082
+epoch=22 iter=4 train: total=2.825031, prob=0.215929, batch=0.029525, channel=0.005499, cls=0.513985, gauss=0.497609, aux_recon=0.823276, aux_kl=0.081234
+epoch=22 test: acc=0.774910, f1=0.392639, auc=0.928759, bac=0.336745, sens=0.336745, spec=0.924706
+epoch=22 val: acc=0.778752, f1=0.441916, auc=0.932847, bac=0.375068, sens=0.375068, spec=0.927156
+epoch=22 iter=14 train: total=2.533757, prob=0.154716, batch=0.028717, channel=0.005595, cls=0.536898, gauss=0.440444, aux_recon=0.828989, aux_kl=0.071236
+epoch=22 test: acc=0.779298, f1=0.299659, auc=0.913859, bac=0.296166, sens=0.296166, spec=0.938854
+epoch=22 val: acc=0.771532, f1=0.282211, auc=0.928712, bac=0.284632, sens=0.284632, spec=0.936667
+epoch=22 iter=24 train: total=2.822336, prob=0.202281, batch=0.028134, channel=0.006087, cls=0.557996, gauss=0.445087, aux_recon=0.859003, aux_kl=0.072171
+epoch=22 test: acc=0.802530, f1=0.381638, auc=0.926510, bac=0.351761, sens=0.351761, spec=0.947129
+epoch=22 val: acc=0.792677, f1=0.345398, auc=0.936998, bac=0.331662, sens=0.331662, spec=0.944733
+epoch=23 iter=8 train: total=3.035444, prob=0.224808, batch=0.033047, channel=0.007227, cls=0.632141, gauss=0.385564, aux_recon=0.831820, aux_kl=0.061514
+epoch=23 test: acc=0.790656, f1=0.356377, auc=0.917663, bac=0.333319, sens=0.333319, spec=0.952350
+epoch=23 val: acc=0.784941, f1=0.321408, auc=0.930651, bac=0.309211, sens=0.309211, spec=0.950929
+epoch=23 iter=18 train: total=2.425244, prob=0.135718, batch=0.023268, channel=0.005555, cls=0.588391, gauss=0.369895, aux_recon=0.827084, aux_kl=0.059649
+epoch=23 test: acc=0.777749, f1=0.405768, auc=0.928552, bac=0.397528, sens=0.397528, spec=0.957226
+epoch=23 val: acc=0.769469, f1=0.397837, auc=0.938612, bac=0.387062, sens=0.387062, spec=0.953815
+epoch=24 iter=2 train: total=2.288087, prob=0.128539, batch=0.020684, channel=0.005315, cls=0.475187, gauss=0.358539, aux_recon=0.868544, aux_kl=0.058164
+epoch=24 test: acc=0.802530, f1=0.319792, auc=0.930181, bac=0.321207, sens=0.321207, spec=0.950444
+epoch=24 val: acc=0.797834, f1=0.309814, auc=0.945003, bac=0.317953, sens=0.317953, spec=0.949979
+epoch=24 iter=12 train: total=2.461917, prob=0.126261, batch=0.018756, channel=0.005229, cls=0.648499, gauss=0.353934, aux_recon=0.900992, aux_kl=0.058693
+epoch=24 test: acc=0.807692, f1=0.375632, auc=0.930930, bac=0.351268, sens=0.351268, spec=0.948231
+epoch=24 val: acc=0.811759, f1=0.364988, auc=0.946098, bac=0.350646, sens=0.350646, spec=0.950312
+epoch=24 iter=22 train: total=2.138425, prob=0.102654, batch=0.018912, channel=0.004877, cls=0.500272, gauss=0.350285, aux_recon=0.846411, aux_kl=0.055537
+epoch=24 test: acc=0.797367, f1=0.316545, auc=0.928753, bac=0.305378, sens=0.305378, spec=0.940146
+epoch=24 val: acc=0.799381, f1=0.338976, auc=0.940691, bac=0.318766, sens=0.318766, spec=0.941205
+epoch=25 iter=6 train: total=2.017647, prob=0.089381, batch=0.015793, channel=0.003959, cls=0.543765, gauss=0.316236, aux_recon=0.792653, aux_kl=0.051814
+epoch=25 test: acc=0.781363, f1=0.357308, auc=0.931655, bac=0.351467, sens=0.351467, spec=0.955604
+epoch=25 val: acc=0.779783, f1=0.365303, auc=0.942303, bac=0.355650, sens=0.355650, spec=0.955609
+epoch=25 iter=16 train: total=1.984494, prob=0.084762, batch=0.015829, channel=0.004022, cls=0.536345, gauss=0.329582, aux_recon=0.787876, aux_kl=0.050044
+epoch=25 test: acc=0.814662, f1=0.379785, auc=0.930378, bac=0.347474, sens=0.347474, spec=0.947515
+epoch=25 val: acc=0.805054, f1=0.368852, auc=0.946314, bac=0.342885, sens=0.342885, spec=0.945782
+epoch=25 iter=26 train: total=1.992563, prob=0.082898, batch=0.014274, channel=0.003926, cls=0.507100, gauss=0.343497, aux_recon=0.849117, aux_kl=0.054980
+epoch=25 test: acc=0.809241, f1=0.411220, auc=0.937263, bac=0.382744, sens=0.382744, spec=0.949629
+epoch=25 val: acc=0.810727, f1=0.393765, auc=0.946690, bac=0.376174, sens=0.376174, spec=0.950829
+epoch=26 iter=10 train: total=1.820844, prob=0.063382, batch=0.016246, channel=0.003672, cls=0.477893, gauss=0.309026, aux_recon=0.791015, aux_kl=0.049381
+epoch=26 test: acc=0.813371, f1=0.383270, auc=0.940214, bac=0.364023, sens=0.364023, spec=0.952596
+epoch=26 val: acc=0.818979, f1=0.371905, auc=0.947914, bac=0.362759, sens=0.362759, spec=0.953638
+epoch=26 iter=20 train: total=1.945590, prob=0.073448, batch=0.014397, channel=0.003750, cls=0.549270, gauss=0.295617, aux_recon=0.813301, aux_kl=0.047416
+epoch=26 test: acc=0.821631, f1=0.367110, auc=0.936374, bac=0.358953, sens=0.358953, spec=0.955798
+epoch=26 val: acc=0.822589, f1=0.392667, auc=0.946164, bac=0.375722, sens=0.375722, spec=0.955853
+epoch=27 iter=4 train: total=1.767465, prob=0.078032, batch=0.013186, channel=0.003754, cls=0.378319, gauss=0.307534, aux_recon=0.794052, aux_kl=0.047715
+epoch=27 test: acc=0.813371, f1=0.340917, auc=0.934508, bac=0.336141, sens=0.336141, spec=0.953118
+epoch=27 val: acc=0.808149, f1=0.350528, auc=0.944402, bac=0.342666, sens=0.342666, spec=0.952288
+epoch=27 iter=14 train: total=1.879162, prob=0.065407, batch=0.014192, channel=0.003326, cls=0.530308, gauss=0.301978, aux_recon=0.811777, aux_kl=0.046654
+epoch=27 test: acc=0.817243, f1=0.386307, auc=0.936182, bac=0.368266, sens=0.368266, spec=0.955490
+epoch=27 val: acc=0.817947, f1=0.376888, auc=0.948711, bac=0.363728, sens=0.363728, spec=0.955486
+epoch=27 iter=24 train: total=2.105233, prob=0.101932, batch=0.014964, channel=0.003195, cls=0.524435, gauss=0.303720, aux_recon=0.854363, aux_kl=0.048144
+epoch=27 test: acc=0.822148, f1=0.366304, auc=0.935793, bac=0.348414, sens=0.348414, spec=0.951617
+epoch=27 val: acc=0.813306, f1=0.368279, auc=0.946499, bac=0.350512, sens=0.350512, spec=0.949968
+epoch=28 iter=8 train: total=2.054027, prob=0.087623, batch=0.013448, channel=0.003028, cls=0.497887, gauss=0.303546, aux_recon=0.918343, aux_kl=0.045669
+epoch=28 test: acc=0.802530, f1=0.356838, auc=0.937081, bac=0.341770, sens=0.341770, spec=0.945383
+epoch=28 val: acc=0.802991, f1=0.400104, auc=0.948225, bac=0.374522, sens=0.374522, spec=0.946422
+epoch=28 iter=18 train: total=2.120681, prob=0.097366, batch=0.012698, channel=0.003254, cls=0.596084, gauss=0.292091, aux_recon=0.844682, aux_kl=0.043531
+epoch=28 test: acc=0.815694, f1=0.391197, auc=0.938865, bac=0.359754, sens=0.359754, spec=0.948783
+epoch=28 val: acc=0.814337, f1=0.370776, auc=0.946312, bac=0.355377, sens=0.355377, spec=0.948526
+epoch=29 iter=2 train: total=2.240698, prob=0.117620, batch=0.015576, channel=0.003034, cls=0.588133, gauss=0.297166, aux_recon=0.844273, aux_kl=0.043802
+epoch=29 test: acc=0.791946, f1=0.325949, auc=0.932637, bac=0.301609, sens=0.301609, spec=0.934183
+epoch=29 val: acc=0.787519, f1=0.327795, auc=0.947191, bac=0.301662, sens=0.301662, spec=0.932852
+epoch=29 iter=12 train: total=2.238754, prob=0.122081, batch=0.013769, channel=0.003002, cls=0.582493, gauss=0.295757, aux_recon=0.844190, aux_kl=0.043835
+epoch=29 test: acc=0.800981, f1=0.330007, auc=0.933147, bac=0.316313, sens=0.316313, spec=0.940891
+epoch=29 val: acc=0.804538, f1=0.347372, auc=0.945520, bac=0.333877, sens=0.333877, spec=0.943144
+epoch=29 iter=22 train: total=1.891166, prob=0.076541, batch=0.012264, channel=0.003136, cls=0.457689, gauss=0.286081, aux_recon=0.863817, aux_kl=0.043409
+epoch=29 test: acc=0.809499, f1=0.388086, auc=0.938881, bac=0.365527, sens=0.365527, spec=0.954512
+epoch=29 val: acc=0.811759, f1=0.425391, auc=0.944081, bac=0.392000, sens=0.392000, spec=0.955038
+epoch=30 iter=6 train: total=1.818555, prob=0.056420, batch=0.013515, channel=0.002957, cls=0.449515, gauss=0.283447, aux_recon=0.889451, aux_kl=0.044274
+epoch=30 test: acc=0.815953, f1=0.449775, auc=0.936577, bac=0.421443, sens=0.421443, spec=0.957463
+epoch=30 val: acc=0.814853, f1=0.446726, auc=0.946847, bac=0.414065, sens=0.414065, spec=0.955848
+epoch=30 iter=16 train: total=1.799582, prob=0.050448, batch=0.014662, channel=0.003013, cls=0.522467, gauss=0.284716, aux_recon=0.815494, aux_kl=0.041578
+epoch=30 test: acc=0.815953, f1=0.384666, auc=0.935249, bac=0.356256, sens=0.356256, spec=0.952106
+epoch=30 val: acc=0.815369, f1=0.366160, auc=0.942174, bac=0.346490, sens=0.346490, spec=0.952389
+epoch=30 iter=26 train: total=2.269691, prob=0.120967, batch=0.012611, channel=0.002990, cls=0.601150, gauss=0.277721, aux_recon=0.875895, aux_kl=0.040303
+epoch=30 test: acc=0.815178, f1=0.339334, auc=0.938611, bac=0.339374, sens=0.339374, spec=0.957589
+epoch=30 val: acc=0.809696, f1=0.358673, auc=0.944883, bac=0.349754, sens=0.349754, spec=0.955903
+epoch=31 iter=10 train: total=1.781464, prob=0.063223, batch=0.013355, channel=0.002925, cls=0.405929, gauss=0.262548, aux_recon=0.866459, aux_kl=0.039054
+epoch=31 test: acc=0.805885, f1=0.353911, auc=0.936723, bac=0.338343, sens=0.338343, spec=0.944289
+epoch=31 val: acc=0.806086, f1=0.358169, auc=0.946333, bac=0.345712, sens=0.345712, spec=0.944690
+epoch=31 iter=20 train: total=1.926566, prob=0.063261, batch=0.013536, channel=0.002762, cls=0.517787, gauss=0.257314, aux_recon=0.899862, aux_kl=0.038937
+epoch=31 test: acc=0.813113, f1=0.365039, auc=0.935725, bac=0.347795, sens=0.347795, spec=0.948488
+epoch=31 val: acc=0.817432, f1=0.372364, auc=0.948146, bac=0.355930, sens=0.355930, spec=0.949371
+epoch=32 iter=4 train: total=1.887180, prob=0.071980, batch=0.013052, channel=0.003064, cls=0.482769, gauss=0.257887, aux_recon=0.853758, aux_kl=0.038043
+epoch=32 test: acc=0.813113, f1=0.362612, auc=0.940115, bac=0.345584, sens=0.345584, spec=0.947043
+epoch=32 val: acc=0.809180, f1=0.360101, auc=0.946422, bac=0.346926, sens=0.346926, spec=0.947188
+epoch=32 iter=14 train: total=1.893444, prob=0.064486, batch=0.014158, channel=0.002766, cls=0.534428, gauss=0.262432, aux_recon=0.837266, aux_kl=0.038393
+epoch=32 test: acc=0.819050, f1=0.363575, auc=0.937719, bac=0.346476, sens=0.346476, spec=0.949767
+epoch=32 val: acc=0.821558, f1=0.377024, auc=0.948798, bac=0.357478, sens=0.357478, spec=0.950735
+epoch=32 iter=24 train: total=1.849172, prob=0.057989, batch=0.013547, channel=0.002779, cls=0.519885, gauss=0.248782, aux_recon=0.847650, aux_kl=0.035492
+epoch=32 test: acc=0.814146, f1=0.377267, auc=0.938278, bac=0.367301, sens=0.367301, spec=0.954520
+epoch=32 val: acc=0.809180, f1=0.374765, auc=0.948037, bac=0.366896, sens=0.366896, spec=0.954537
+epoch=33 iter=8 train: total=1.900895, prob=0.067893, batch=0.013697, channel=0.002499, cls=0.508263, gauss=0.262032, aux_recon=0.861090, aux_kl=0.039139
+epoch=33 test: acc=0.809241, f1=0.343712, auc=0.936412, bac=0.326768, sens=0.326768, spec=0.945642
+epoch=33 val: acc=0.809696, f1=0.370937, auc=0.945209, bac=0.343246, sens=0.343246, spec=0.946429
+epoch=33 iter=18 train: total=1.844310, prob=0.059352, batch=0.011457, channel=0.002630, cls=0.554113, gauss=0.259762, aux_recon=0.822890, aux_kl=0.037086
+epoch=33 test: acc=0.809499, f1=0.352116, auc=0.937201, bac=0.332994, sens=0.332994, spec=0.945310
+epoch=33 val: acc=0.809180, f1=0.375393, auc=0.942900, bac=0.354972, sens=0.354972, spec=0.945509
+epoch=34 iter=2 train: total=1.867479, prob=0.065947, batch=0.011848, channel=0.002680, cls=0.438330, gauss=0.251593, aux_recon=0.925363, aux_kl=0.036130
+epoch=34 test: acc=0.822664, f1=0.405220, auc=0.942494, bac=0.375976, sens=0.375976, spec=0.953429
+epoch=34 val: acc=0.814337, f1=0.418494, auc=0.948362, bac=0.387575, sens=0.387575, spec=0.952887
+epoch=34 iter=12 train: total=1.939714, prob=0.057497, batch=0.012414, channel=0.002543, cls=0.612391, gauss=0.241470, aux_recon=0.862719, aux_kl=0.034101
+epoch=34 test: acc=0.824213, f1=0.360200, auc=0.941972, bac=0.346716, sens=0.346716, spec=0.952272
+epoch=34 val: acc=0.814853, f1=0.379499, auc=0.948252, bac=0.354394, sens=0.354394, spec=0.949707
+epoch=34 iter=22 train: total=1.714189, prob=0.051497, batch=0.012991, channel=0.002539, cls=0.418985, gauss=0.250864, aux_recon=0.853515, aux_kl=0.038242
+epoch=34 test: acc=0.816211, f1=0.351916, auc=0.941015, bac=0.340471, sens=0.340471, spec=0.950797
+epoch=34 val: acc=0.811759, f1=0.371156, auc=0.942775, bac=0.348973, sens=0.348973, spec=0.949284
+epoch=35 iter=6 train: total=1.744431, prob=0.051578, batch=0.012035, channel=0.002334, cls=0.399261, gauss=0.270484, aux_recon=0.912636, aux_kl=0.039044
+epoch=35 test: acc=0.825761, f1=0.402446, auc=0.939327, bac=0.378332, sens=0.378332, spec=0.955845
+epoch=35 val: acc=0.821558, f1=0.403562, auc=0.949805, bac=0.382166, sens=0.382166, spec=0.955198
+epoch=35 iter=16 train: total=1.692004, prob=0.052733, batch=0.010921, channel=0.002534, cls=0.457840, gauss=0.249567, aux_recon=0.807560, aux_kl=0.034381
+epoch=35 test: acc=0.818534, f1=0.396600, auc=0.938838, bac=0.373761, sens=0.373761, spec=0.952499
+epoch=35 val: acc=0.814337, f1=0.363912, auc=0.948836, bac=0.356399, sens=0.356399, spec=0.952135
+epoch=35 iter=26 train: total=1.909681, prob=0.073538, batch=0.011800, channel=0.002402, cls=0.498605, gauss=0.254855, aux_recon=0.872140, aux_kl=0.037401
+epoch=35 test: acc=0.816985, f1=0.386397, auc=0.942240, bac=0.381707, sens=0.381707, spec=0.956758
+epoch=35 val: acc=0.811759, f1=0.373977, auc=0.949122, bac=0.378218, sens=0.378218, spec=0.955489
+epoch=36 iter=10 train: total=1.917268, prob=0.072726, batch=0.011610, channel=0.002334, cls=0.515568, gauss=0.259625, aux_recon=0.869042, aux_kl=0.036259
+epoch=36 test: acc=0.821373, f1=0.364141, auc=0.939684, bac=0.356983, sens=0.356983, spec=0.955638
+epoch=36 val: acc=0.819495, f1=0.373568, auc=0.946523, bac=0.365921, sens=0.365921, spec=0.955406
+epoch=36 iter=20 train: total=1.774966, prob=0.068321, batch=0.011428, channel=0.002305, cls=0.456521, gauss=0.239801, aux_recon=0.812132, aux_kl=0.034008
+epoch=36 test: acc=0.813113, f1=0.397841, auc=0.940408, bac=0.379378, sens=0.379378, spec=0.958628
+epoch=36 val: acc=0.815369, f1=0.425906, auc=0.944473, bac=0.396056, sens=0.396056, spec=0.958646
+epoch=37 iter=4 train: total=1.633489, prob=0.041720, batch=0.010566, channel=0.002410, cls=0.445992, gauss=0.244087, aux_recon=0.821370, aux_kl=0.033646
+epoch=37 test: acc=0.815178, f1=0.392898, auc=0.941752, bac=0.368125, sens=0.368125, spec=0.950692
+epoch=37 val: acc=0.809696, f1=0.364943, auc=0.946094, bac=0.356237, sens=0.356237, spec=0.949014
+epoch=37 iter=14 train: total=1.808420, prob=0.047561, batch=0.010658, channel=0.002166, cls=0.536188, gauss=0.249222, aux_recon=0.877808, aux_kl=0.034586
+epoch=37 test: acc=0.813629, f1=0.366496, auc=0.938487, bac=0.362823, sens=0.362823, spec=0.952249
+epoch=37 val: acc=0.806601, f1=0.424193, auc=0.946609, bac=0.403597, sens=0.403597, spec=0.950135
+epoch=37 iter=24 train: total=1.851652, prob=0.043207, batch=0.011358, channel=0.002177, cls=0.584325, gauss=0.241462, aux_recon=0.888366, aux_kl=0.034322
+epoch=37 test: acc=0.821890, f1=0.364359, auc=0.939852, bac=0.347123, sens=0.347123, spec=0.952309
+epoch=37 val: acc=0.812790, f1=0.369462, auc=0.944651, bac=0.351509, sens=0.351509, spec=0.951117
+epoch=38 iter=8 train: total=1.761902, prob=0.045993, batch=0.012409, channel=0.002146, cls=0.493403, gauss=0.255219, aux_recon=0.864012, aux_kl=0.034485
+epoch=38 test: acc=0.824471, f1=0.420618, auc=0.944390, bac=0.391345, sens=0.391345, spec=0.955337
+epoch=38 val: acc=0.815369, f1=0.366296, auc=0.949149, bac=0.355890, sens=0.355890, spec=0.953280
+epoch=38 iter=18 train: total=1.864690, prob=0.081398, batch=0.011236, channel=0.002321, cls=0.480289, gauss=0.233240, aux_recon=0.815410, aux_kl=0.031105
+epoch=38 test: acc=0.823438, f1=0.358277, auc=0.943852, bac=0.352859, sens=0.352859, spec=0.957281
+epoch=38 val: acc=0.817432, f1=0.375313, auc=0.948874, bac=0.364841, sens=0.364841, spec=0.955505
+epoch=39 iter=2 train: total=1.787453, prob=0.061421, batch=0.010929, channel=0.002191, cls=0.484753, gauss=0.257014, aux_recon=0.835410, aux_kl=0.032849
+epoch=39 test: acc=0.821373, f1=0.342613, auc=0.944686, bac=0.332748, sens=0.332748, spec=0.951565
+epoch=39 val: acc=0.817947, f1=0.357909, auc=0.951235, bac=0.342224, sens=0.342224, spec=0.950873
+epoch=39 iter=12 train: total=1.873907, prob=0.062085, batch=0.011081, channel=0.002194, cls=0.520557, gauss=0.248587, aux_recon=0.882012, aux_kl=0.033048
+epoch=39 test: acc=0.819050, f1=0.442558, auc=0.942245, bac=0.411146, sens=0.411146, spec=0.957469
+epoch=39 val: acc=0.816400, f1=0.397269, auc=0.952250, bac=0.384433, sens=0.384433, spec=0.956377
+epoch=39 iter=22 train: total=1.793049, prob=0.063274, batch=0.012181, channel=0.002271, cls=0.417148, gauss=0.238232, aux_recon=0.887896, aux_kl=0.032956
+epoch=39 test: acc=0.816469, f1=0.422226, auc=0.942433, bac=0.401035, sens=0.401035, spec=0.955835
+epoch=39 val: acc=0.820010, f1=0.385633, auc=0.947937, bac=0.381786, sens=0.381786, spec=0.956722
+epoch=40 iter=6 train: total=1.858954, prob=0.047314, batch=0.010401, channel=0.002217, cls=0.642195, gauss=0.218223, aux_recon=0.829282, aux_kl=0.029039
+epoch=40 test: acc=0.822922, f1=0.390242, auc=0.944655, bac=0.373388, sens=0.373388, spec=0.958474
+epoch=40 val: acc=0.815369, f1=0.380592, auc=0.949089, bac=0.371609, sens=0.371609, spec=0.956639
+epoch=40 iter=16 train: total=1.803186, prob=0.061278, batch=0.010561, channel=0.002129, cls=0.477512, gauss=0.242044, aux_recon=0.864938, aux_kl=0.032420
+epoch=40 test: acc=0.820599, f1=0.369145, auc=0.940541, bac=0.352663, sens=0.352663, spec=0.952298
+epoch=40 val: acc=0.813306, f1=0.372358, auc=0.947962, bac=0.355367, sens=0.355367, spec=0.950404
+epoch=40 iter=26 train: total=1.730640, prob=0.046500, batch=0.011034, channel=0.002279, cls=0.512904, gauss=0.241446, aux_recon=0.824687, aux_kl=0.032749
+epoch=40 test: acc=0.822922, f1=0.405762, auc=0.942902, bac=0.387454, sens=0.387454, spec=0.958859
+epoch=40 val: acc=0.815884, f1=0.405428, auc=0.949250, bac=0.389461, sens=0.389461, spec=0.957718
+epoch=41 iter=10 train: total=1.760433, prob=0.055874, batch=0.010543, channel=0.002227, cls=0.429397, gauss=0.230169, aux_recon=0.897820, aux_kl=0.031317
+epoch=41 test: acc=0.820857, f1=0.390499, auc=0.942070, bac=0.368721, sens=0.368721, spec=0.955320
+epoch=41 val: acc=0.817432, f1=0.434007, auc=0.947095, bac=0.395017, sens=0.395017, spec=0.953969
+epoch=41 iter=20 train: total=1.797207, prob=0.054100, batch=0.010293, channel=0.002179, cls=0.549415, gauss=0.243160, aux_recon=0.825114, aux_kl=0.031483
+epoch=41 test: acc=0.817243, f1=0.365867, auc=0.939066, bac=0.353676, sens=0.353676, spec=0.952427
+epoch=41 val: acc=0.816400, f1=0.376762, auc=0.951171, bac=0.362716, sens=0.362716, spec=0.951806
+epoch=42 iter=4 train: total=1.718198, prob=0.047827, batch=0.010634, channel=0.001993, cls=0.555270, gauss=0.216201, aux_recon=0.773079, aux_kl=0.028194
+epoch=42 test: acc=0.819050, f1=0.381899, auc=0.942312, bac=0.374983, sens=0.374983, spec=0.956215
+epoch=42 val: acc=0.816400, f1=0.379108, auc=0.951682, bac=0.376999, sens=0.376999, spec=0.956190
+epoch=42 iter=14 train: total=1.765952, prob=0.064149, batch=0.010719, channel=0.002153, cls=0.484115, gauss=0.229132, aux_recon=0.806392, aux_kl=0.030699
+epoch=42 test: acc=0.823180, f1=0.397704, auc=0.940821, bac=0.372215, sens=0.372215, spec=0.954202
+epoch=42 val: acc=0.809180, f1=0.368160, auc=0.948632, bac=0.351988, sens=0.351988, spec=0.951300
+epoch=42 iter=24 train: total=1.745894, prob=0.053879, batch=0.010070, channel=0.001911, cls=0.485966, gauss=0.217109, aux_recon=0.846171, aux_kl=0.028463
+epoch=42 test: acc=0.828085, f1=0.416040, auc=0.943335, bac=0.386957, sens=0.386957, spec=0.955739
+epoch=42 val: acc=0.813822, f1=0.362721, auc=0.950812, bac=0.353860, sens=0.353860, spec=0.952927
+epoch=43 iter=8 train: total=1.675190, prob=0.054676, batch=0.009539, channel=0.001807, cls=0.410056, gauss=0.237437, aux_recon=0.851479, aux_kl=0.030666
+epoch=43 test: acc=0.823180, f1=0.395480, auc=0.944124, bac=0.373366, sens=0.373366, spec=0.954186
+epoch=43 val: acc=0.817947, f1=0.428326, auc=0.952499, bac=0.393943, sens=0.393943, spec=0.953651
+epoch=43 iter=18 train: total=1.831557, prob=0.052714, batch=0.009677, channel=0.002059, cls=0.581763, gauss=0.226438, aux_recon=0.843260, aux_kl=0.029572
+epoch=43 test: acc=0.821890, f1=0.366423, auc=0.941582, bac=0.352296, sens=0.352296, spec=0.953379
+epoch=43 val: acc=0.816916, f1=0.372978, auc=0.951345, bac=0.361638, sens=0.361638, spec=0.952862
+epoch=44 iter=2 train: total=1.545247, prob=0.048686, batch=0.009917, channel=0.002015, cls=0.390782, gauss=0.208086, aux_recon=0.768087, aux_kl=0.028155
+epoch=44 test: acc=0.822664, f1=0.378195, auc=0.942347, bac=0.364936, sens=0.364936, spec=0.955406
+epoch=44 val: acc=0.819495, f1=0.384997, auc=0.952878, bac=0.367817, sens=0.367817, spec=0.955170
+epoch=44 iter=12 train: total=1.671269, prob=0.054306, batch=0.010803, channel=0.001962, cls=0.343396, gauss=0.226426, aux_recon=0.903090, aux_kl=0.029609
+epoch=44 test: acc=0.799948, f1=0.401092, auc=0.940647, bac=0.389830, sens=0.389830, spec=0.957117
+epoch=44 val: acc=0.796802, f1=0.362689, auc=0.947016, bac=0.368771, sens=0.368771, spec=0.957666
+epoch=44 iter=22 train: total=1.841469, prob=0.112310, batch=0.010924, channel=0.001800, cls=0.342034, gauss=0.218989, aux_recon=0.786161, aux_kl=0.025771
+epoch=44 test: acc=0.819824, f1=0.371747, auc=0.943079, bac=0.355165, sens=0.355165, spec=0.951906
+epoch=44 val: acc=0.825683, f1=0.395333, auc=0.950438, bac=0.372762, sens=0.372762, spec=0.953478
+epoch=45 iter=6 train: total=1.699518, prob=0.052841, batch=0.010419, channel=0.001870, cls=0.480117, gauss=0.229098, aux_recon=0.806558, aux_kl=0.028397
+epoch=45 test: acc=0.821115, f1=0.392459, auc=0.943574, bac=0.370654, sens=0.370654, spec=0.954172
+epoch=45 val: acc=0.818979, f1=0.365472, auc=0.953266, bac=0.360128, sens=0.360128, spec=0.954361
+epoch=45 iter=16 train: total=1.728033, prob=0.052840, batch=0.010453, channel=0.001911, cls=0.473722, gauss=0.212223, aux_recon=0.842407, aux_kl=0.028410
+epoch=45 test: acc=0.824471, f1=0.378358, auc=0.941814, bac=0.366991, sens=0.366991, spec=0.955233
+epoch=45 val: acc=0.820526, f1=0.442563, auc=0.949842, bac=0.409463, sens=0.409463, spec=0.955268
+epoch=45 iter=26 train: total=1.778505, prob=0.060006, batch=0.010221, channel=0.001876, cls=0.420911, gauss=0.219008, aux_recon=0.911871, aux_kl=0.028270
+epoch=45 test: acc=0.820857, f1=0.415279, auc=0.941749, bac=0.385411, sens=0.385411, spec=0.954055
+epoch=45 val: acc=0.821558, f1=0.439242, auc=0.951870, bac=0.401516, sens=0.401516, spec=0.955456
+epoch=46 iter=10 train: total=1.626258, prob=0.050516, batch=0.009529, channel=0.001754, cls=0.410868, gauss=0.221988, aux_recon=0.824985, aux_kl=0.028048
+epoch=46 test: acc=0.824213, f1=0.362360, auc=0.941346, bac=0.346764, sens=0.346764, spec=0.952871
+epoch=46 val: acc=0.813306, f1=0.430710, auc=0.948569, bac=0.386367, sens=0.386367, spec=0.951065
+epoch=46 iter=20 train: total=1.718663, prob=0.059821, batch=0.009133, channel=0.001800, cls=0.437273, gauss=0.218015, aux_recon=0.848321, aux_kl=0.028276
+epoch=46 test: acc=0.821631, f1=0.415248, auc=0.943947, bac=0.393537, sens=0.393537, spec=0.958858
+epoch=46 val: acc=0.816916, f1=0.431698, auc=0.948944, bac=0.404250, sens=0.404250, spec=0.958218
+epoch=47 iter=4 train: total=1.750132, prob=0.051545, batch=0.010481, channel=0.001790, cls=0.491970, gauss=0.221262, aux_recon=0.852698, aux_kl=0.029023
+epoch=47 test: acc=0.823955, f1=0.437617, auc=0.944689, bac=0.398441, sens=0.398441, spec=0.952620
+epoch=47 val: acc=0.814337, f1=0.435344, auc=0.952221, bac=0.394849, sens=0.394849, spec=0.950114
+epoch=47 iter=14 train: total=2.056306, prob=0.086489, batch=0.009772, channel=0.001678, cls=0.600775, gauss=0.216526, aux_recon=0.884167, aux_kl=0.027634
+epoch=47 test: acc=0.816727, f1=0.378793, auc=0.945209, bac=0.362512, sens=0.362512, spec=0.951935
+epoch=47 val: acc=0.824136, f1=0.392351, auc=0.952515, bac=0.375316, sens=0.375316, spec=0.954619
+epoch=47 iter=24 train: total=1.839139, prob=0.058461, batch=0.009539, channel=0.001806, cls=0.484766, gauss=0.218396, aux_recon=0.924124, aux_kl=0.026648
+epoch=47 test: acc=0.823438, f1=0.376104, auc=0.943149, bac=0.368941, sens=0.368941, spec=0.955476
+epoch=47 val: acc=0.816400, f1=0.426366, auc=0.952640, bac=0.401284, sens=0.401284, spec=0.954670
+epoch=48 iter=8 train: total=1.582826, prob=0.046846, batch=0.009587, channel=0.001629, cls=0.385817, gauss=0.217659, aux_recon=0.826105, aux_kl=0.027500
+epoch=48 test: acc=0.823180, f1=0.452800, auc=0.944321, bac=0.426515, sens=0.426515, spec=0.959482
+epoch=48 val: acc=0.815369, f1=0.453379, auc=0.952245, bac=0.422538, sens=0.422538, spec=0.958497
+epoch=48 iter=18 train: total=1.732807, prob=0.057180, batch=0.010009, channel=0.001690, cls=0.416203, gauss=0.209374, aux_recon=0.890201, aux_kl=0.025792
+epoch=48 test: acc=0.828859, f1=0.371689, auc=0.941958, bac=0.359942, sens=0.359942, spec=0.958132
+epoch=48 val: acc=0.816916, f1=0.399115, auc=0.950340, bac=0.376822, sens=0.376822, spec=0.954896
+epoch=49 iter=2 train: total=1.815403, prob=0.073081, batch=0.008737, channel=0.001693, cls=0.449462, gauss=0.212847, aux_recon=0.872373, aux_kl=0.025742
+epoch=49 test: acc=0.826020, f1=0.378512, auc=0.945021, bac=0.365237, sens=0.365237, spec=0.955657
+epoch=49 val: acc=0.829293, f1=0.404340, auc=0.952567, bac=0.384372, sens=0.384372, spec=0.957193
+epoch=49 iter=12 train: total=1.868696, prob=0.072623, batch=0.009794, channel=0.001690, cls=0.482617, gauss=0.206993, aux_recon=0.884827, aux_kl=0.026004
+epoch=49 test: acc=0.829892, f1=0.427697, auc=0.944113, bac=0.396754, sens=0.396754, spec=0.957362
+epoch=49 val: acc=0.823105, f1=0.401677, auc=0.951001, bac=0.382004, sens=0.382004, spec=0.955903
+epoch=49 iter=22 train: total=1.730451, prob=0.042138, batch=0.009253, channel=0.001576, cls=0.510615, gauss=0.215288, aux_recon=0.876752, aux_kl=0.025814
+epoch=49 test: acc=0.825761, f1=0.424162, auc=0.941355, bac=0.394689, sens=0.394689, spec=0.955877
+epoch=49 val: acc=0.818979, f1=0.391415, auc=0.951830, bac=0.369883, sens=0.369883, spec=0.954245
+epoch=50 iter=6 train: total=1.631717, prob=0.047094, batch=0.008870, channel=0.001591, cls=0.413777, gauss=0.215569, aux_recon=0.853620, aux_kl=0.026837
+epoch=50 test: acc=0.824987, f1=0.408905, auc=0.945380, bac=0.387437, sens=0.387437, spec=0.955957
+epoch=50 val: acc=0.821558, f1=0.388095, auc=0.953393, bac=0.379012, sens=0.379012, spec=0.955712
+epoch=50 iter=16 train: total=1.559053, prob=0.039342, batch=0.008298, channel=0.001642, cls=0.408192, gauss=0.211924, aux_recon=0.830891, aux_kl=0.026758
+epoch=50 test: acc=0.825761, f1=0.398279, auc=0.941697, bac=0.373643, sens=0.373643, spec=0.954763
+epoch=50 val: acc=0.822589, f1=0.454504, auc=0.951919, bac=0.409403, sens=0.409403, spec=0.953817
+epoch=50 iter=26 train: total=1.620669, prob=0.050153, batch=0.009465, channel=0.001766, cls=0.409620, gauss=0.213754, aux_recon=0.823909, aux_kl=0.026856
+epoch=50 test: acc=0.821373, f1=0.409690, auc=0.939317, bac=0.384748, sens=0.384748, spec=0.955625
+epoch=50 val: acc=0.814337, f1=0.364712, auc=0.951966, bac=0.355693, sens=0.355693, spec=0.954562
+epoch=51 iter=10 train: total=1.505687, prob=0.051838, batch=0.009097, channel=0.001556, cls=0.301610, gauss=0.213103, aux_recon=0.814510, aux_kl=0.025353
+epoch=51 test: acc=0.827827, f1=0.417066, auc=0.941630, bac=0.383598, sens=0.383598, spec=0.953342
+epoch=51 val: acc=0.823105, f1=0.387000, auc=0.952367, bac=0.369845, sens=0.369845, spec=0.952383
+epoch=51 iter=20 train: total=1.591087, prob=0.038867, batch=0.008957, channel=0.001645, cls=0.408652, gauss=0.222807, aux_recon=0.857215, aux_kl=0.025779
+epoch=51 test: acc=0.810790, f1=0.388097, auc=0.940065, bac=0.367407, sens=0.367407, spec=0.951982
+epoch=51 val: acc=0.816400, f1=0.383531, auc=0.951904, bac=0.371037, sens=0.371037, spec=0.952922
+epoch=52 iter=4 train: total=1.655367, prob=0.055292, batch=0.008379, channel=0.001502, cls=0.428550, gauss=0.213416, aux_recon=0.827627, aux_kl=0.025750
+epoch=52 test: acc=0.823180, f1=0.379490, auc=0.941476, bac=0.371550, sens=0.371550, spec=0.954666
+epoch=52 val: acc=0.825683, f1=0.399754, auc=0.952884, bac=0.380921, sens=0.380921, spec=0.954754
+epoch=52 iter=14 train: total=1.786315, prob=0.057424, batch=0.009481, channel=0.001600, cls=0.507578, gauss=0.220254, aux_recon=0.856149, aux_kl=0.026379
+epoch=52 test: acc=0.810532, f1=0.396521, auc=0.942322, bac=0.387096, sens=0.387096, spec=0.959634
+epoch=52 val: acc=0.810727, f1=0.379667, auc=0.951685, bac=0.378776, sens=0.378776, spec=0.959401
+epoch=52 iter=24 train: total=1.772333, prob=0.040664, batch=0.008116, channel=0.001590, cls=0.581532, gauss=0.205989, aux_recon=0.867356, aux_kl=0.024642
+epoch=52 test: acc=0.821115, f1=0.434906, auc=0.942061, bac=0.398748, sens=0.398748, spec=0.952208
+epoch=52 val: acc=0.820526, f1=0.402335, auc=0.952566, bac=0.382520, sens=0.382520, spec=0.951923
+epoch=53 iter=8 train: total=1.658181, prob=0.051215, batch=0.009004, channel=0.001448, cls=0.455160, gauss=0.209096, aux_recon=0.818958, aux_kl=0.025586
+epoch=53 test: acc=0.827827, f1=0.416212, auc=0.941660, bac=0.390560, sens=0.390560, spec=0.955391
+epoch=53 val: acc=0.827231, f1=0.387651, auc=0.950632, bac=0.378255, sens=0.378255, spec=0.954298
+epoch=53 iter=18 train: total=1.719094, prob=0.060988, batch=0.009730, channel=0.001659, cls=0.439995, gauss=0.202622, aux_recon=0.837529, aux_kl=0.024808
+epoch=53 test: acc=0.825761, f1=0.437840, auc=0.940669, bac=0.404869, sens=0.404869, spec=0.956148
+epoch=53 val: acc=0.823105, f1=0.446255, auc=0.950961, bac=0.409869, sens=0.409869, spec=0.954810
+epoch=54 iter=2 train: total=1.666828, prob=0.053276, batch=0.009145, channel=0.001659, cls=0.434780, gauss=0.200532, aux_recon=0.835113, aux_kl=0.024597
+epoch=54 test: acc=0.823180, f1=0.396477, auc=0.940840, bac=0.377315, sens=0.377315, spec=0.957060
+epoch=54 val: acc=0.822589, f1=0.453792, auc=0.951401, bac=0.417692, sens=0.417692, spec=0.956769
+epoch=54 iter=12 train: total=1.654183, prob=0.049224, batch=0.007930, channel=0.001505, cls=0.419159, gauss=0.218999, aux_recon=0.869965, aux_kl=0.026961
+epoch=54 test: acc=0.826278, f1=0.424041, auc=0.942096, bac=0.398360, sens=0.398360, spec=0.957844
+epoch=54 val: acc=0.823105, f1=0.402293, auc=0.953328, bac=0.386932, sens=0.386932, spec=0.957578
+epoch=54 iter=22 train: total=1.740280, prob=0.053058, batch=0.009241, channel=0.001539, cls=0.494181, gauss=0.205095, aux_recon=0.849983, aux_kl=0.025224
+epoch=54 test: acc=0.826536, f1=0.386497, auc=0.943037, bac=0.375872, sens=0.375872, spec=0.955389
+epoch=54 val: acc=0.829293, f1=0.383766, auc=0.951285, bac=0.376340, sens=0.376340, spec=0.956140
+epoch=55 iter=6 train: total=1.822853, prob=0.086448, batch=0.009139, channel=0.001630, cls=0.432021, gauss=0.188037, aux_recon=0.829803, aux_kl=0.022950
+epoch=55 test: acc=0.820341, f1=0.395040, auc=0.943906, bac=0.374930, sens=0.374930, spec=0.955381
+epoch=55 val: acc=0.823105, f1=0.441681, auc=0.951680, bac=0.408872, sens=0.408872, spec=0.955646
+epoch=55 iter=16 train: total=1.675921, prob=0.044610, batch=0.008162, channel=0.001669, cls=0.450459, gauss=0.197009, aux_recon=0.881898, aux_kl=0.025015
+epoch=55 test: acc=0.823955, f1=0.424961, auc=0.942459, bac=0.392068, sens=0.392068, spec=0.953432
+epoch=55 val: acc=0.820010, f1=0.436273, auc=0.949904, bac=0.402058, sens=0.402058, spec=0.952622
+epoch=55 iter=26 train: total=1.658382, prob=0.042814, batch=0.008858, channel=0.001673, cls=0.490922, gauss=0.208995, aux_recon=0.824729, aux_kl=0.024619
+epoch=55 test: acc=0.820083, f1=0.432946, auc=0.946484, bac=0.408413, sens=0.408413, spec=0.958651
+epoch=55 val: acc=0.822589, f1=0.441481, auc=0.951108, bac=0.413254, sens=0.413254, spec=0.959391
+epoch=56 iter=10 train: total=1.577520, prob=0.058899, batch=0.008309, channel=0.001425, cls=0.359759, gauss=0.196007, aux_recon=0.804056, aux_kl=0.022663
+epoch=56 test: acc=0.826278, f1=0.429680, auc=0.943435, bac=0.397182, sens=0.397182, spec=0.956161
+epoch=56 val: acc=0.825683, f1=0.448772, auc=0.952280, bac=0.410394, sens=0.410394, spec=0.955704
+epoch=56 iter=20 train: total=1.638411, prob=0.046212, batch=0.008246, channel=0.001370, cls=0.443155, gauss=0.204162, aux_recon=0.845176, aux_kl=0.024349
+epoch=56 test: acc=0.829375, f1=0.433253, auc=0.943784, bac=0.400742, sens=0.400742, spec=0.955734
+epoch=56 val: acc=0.820526, f1=0.443603, auc=0.951956, bac=0.402218, sens=0.402218, spec=0.954650
+epoch=57 iter=4 train: total=1.679224, prob=0.034234, batch=0.007855, channel=0.001410, cls=0.540612, gauss=0.200138, aux_recon=0.852397, aux_kl=0.023833
+epoch=57 test: acc=0.821631, f1=0.427718, auc=0.940144, bac=0.392760, sens=0.392760, spec=0.953798
+epoch=57 val: acc=0.814853, f1=0.435987, auc=0.949585, bac=0.396765, sens=0.396765, spec=0.952119
+epoch=57 iter=14 train: total=1.650181, prob=0.046450, batch=0.007927, channel=0.001420, cls=0.439901, gauss=0.189459, aux_recon=0.863391, aux_kl=0.022244
+epoch=57 test: acc=0.823438, f1=0.412557, auc=0.944696, bac=0.390120, sens=0.390120, spec=0.956287
+epoch=57 val: acc=0.819495, f1=0.432105, auc=0.953826, bac=0.401571, sens=0.401571, spec=0.955363
+epoch=57 iter=24 train: total=1.626542, prob=0.042700, batch=0.008504, channel=0.001356, cls=0.410621, gauss=0.194063, aux_recon=0.882095, aux_kl=0.023237
+epoch=57 test: acc=0.824987, f1=0.425587, auc=0.943428, bac=0.388766, sens=0.388766, spec=0.953280
+epoch=57 val: acc=0.820010, f1=0.429514, auc=0.948657, bac=0.391740, sens=0.391740, spec=0.953011
+epoch=58 iter=8 train: total=1.655162, prob=0.054146, batch=0.008640, channel=0.001367, cls=0.418189, gauss=0.201330, aux_recon=0.843536, aux_kl=0.025114
+epoch=58 test: acc=0.827568, f1=0.405153, auc=0.945424, bac=0.385123, sens=0.385123, spec=0.958174
+epoch=58 val: acc=0.822073, f1=0.389755, auc=0.953740, bac=0.376761, sens=0.376761, spec=0.957377
+epoch=58 iter=18 train: total=1.742855, prob=0.067297, batch=0.008464, channel=0.001265, cls=0.466491, gauss=0.190640, aux_recon=0.821211, aux_kl=0.023124
+epoch=58 test: acc=0.816985, f1=0.416154, auc=0.943834, bac=0.390919, sens=0.390919, spec=0.953315
+epoch=58 val: acc=0.821558, f1=0.441578, auc=0.952972, bac=0.408343, sens=0.408343, spec=0.954214
+epoch=59 iter=2 train: total=1.586266, prob=0.054977, batch=0.008806, channel=0.001440, cls=0.387902, gauss=0.192390, aux_recon=0.799429, aux_kl=0.023563
+epoch=59 test: acc=0.829892, f1=0.425717, auc=0.941836, bac=0.391947, sens=0.391947, spec=0.955882
+epoch=59 val: acc=0.820526, f1=0.380440, auc=0.951363, bac=0.365767, sens=0.365767, spec=0.953700
+epoch=59 iter=12 train: total=1.564454, prob=0.045638, batch=0.008986, channel=0.001373, cls=0.346867, gauss=0.198037, aux_recon=0.863714, aux_kl=0.022956
+epoch=59 test: acc=0.827052, f1=0.452698, auc=0.947351, bac=0.419879, sens=0.419879, spec=0.957527
+epoch=59 val: acc=0.815884, f1=0.421887, auc=0.949463, bac=0.395156, sens=0.395156, spec=0.954500
+epoch=59 iter=22 train: total=1.751767, prob=0.049250, batch=0.008304, channel=0.001377, cls=0.492249, gauss=0.202987, aux_recon=0.893754, aux_kl=0.024092
+epoch=59 test: acc=0.828085, f1=0.455348, auc=0.944081, bac=0.426800, sens=0.426800, spec=0.959210
+epoch=59 val: acc=0.817947, f1=0.448300, auc=0.951849, bac=0.416724, sens=0.416724, spec=0.956964
+epoch=60 iter=6 train: total=1.454355, prob=0.047437, batch=0.008502, channel=0.001320, cls=0.315934, gauss=0.194427, aux_recon=0.781291, aux_kl=0.022787
+epoch=60 test: acc=0.824471, f1=0.420203, auc=0.941641, bac=0.386837, sens=0.386837, spec=0.953650
+epoch=60 val: acc=0.824136, f1=0.455820, auc=0.951130, bac=0.414832, sens=0.414832, spec=0.954300
+epoch=60 iter=16 train: total=1.655143, prob=0.044037, batch=0.007690, channel=0.001364, cls=0.472195, gauss=0.189656, aux_recon=0.851100, aux_kl=0.021575
+epoch=60 test: acc=0.829117, f1=0.420409, auc=0.944551, bac=0.391952, sens=0.391952, spec=0.956661
+epoch=60 val: acc=0.822073, f1=0.373964, auc=0.954172, bac=0.363640, sens=0.363640, spec=0.955402
+epoch=60 iter=26 train: total=1.395636, prob=0.031902, batch=0.007662, channel=0.001367, cls=0.331728, gauss=0.189747, aux_recon=0.792899, aux_kl=0.022348
+epoch=60 test: acc=0.823696, f1=0.436966, auc=0.944052, bac=0.410131, sens=0.410131, spec=0.957350
+epoch=60 val: acc=0.820010, f1=0.443536, auc=0.952358, bac=0.412537, sens=0.412537, spec=0.955352
+epoch=61 iter=10 train: total=1.583167, prob=0.042637, batch=0.007751, channel=0.001450, cls=0.397895, gauss=0.196144, aux_recon=0.858187, aux_kl=0.022803
+epoch=61 test: acc=0.822922, f1=0.440981, auc=0.945047, bac=0.410884, sens=0.410884, spec=0.957589
+epoch=61 val: acc=0.821558, f1=0.432034, auc=0.953714, bac=0.401466, sens=0.401466, spec=0.957599
+epoch=61 iter=20 train: total=1.616864, prob=0.040500, batch=0.007741, channel=0.001292, cls=0.412492, gauss=0.200516, aux_recon=0.889289, aux_kl=0.022095
+epoch=61 test: acc=0.824729, f1=0.440850, auc=0.943197, bac=0.409900, sens=0.409900, spec=0.955844
+epoch=61 val: acc=0.820010, f1=0.437271, auc=0.951602, bac=0.400491, sens=0.400491, spec=0.955176
+epoch=62 iter=4 train: total=1.609226, prob=0.046289, batch=0.009569, channel=0.001254, cls=0.417857, gauss=0.192817, aux_recon=0.830167, aux_kl=0.022410
+epoch=62 test: acc=0.821373, f1=0.403517, auc=0.943045, bac=0.380657, sens=0.380657, spec=0.953049
+epoch=62 val: acc=0.819495, f1=0.391275, auc=0.953374, bac=0.372533, sens=0.372533, spec=0.954467
+epoch=62 iter=14 train: total=1.636310, prob=0.043701, batch=0.007798, channel=0.001246, cls=0.428736, gauss=0.193081, aux_recon=0.877012, aux_kl=0.023024
+epoch=62 test: acc=0.825503, f1=0.455603, auc=0.943944, bac=0.428973, sens=0.428973, spec=0.959160
+epoch=62 val: acc=0.825683, f1=0.454548, auc=0.953471, bac=0.421726, sens=0.421726, spec=0.958867
+epoch=62 iter=24 train: total=1.546612, prob=0.044430, batch=0.008211, channel=0.001284, cls=0.366906, gauss=0.197885, aux_recon=0.840550, aux_kl=0.022655
+epoch=62 test: acc=0.825503, f1=0.440413, auc=0.946758, bac=0.399312, sens=0.399312, spec=0.951674
+epoch=62 val: acc=0.830325, f1=0.451396, auc=0.954992, bac=0.408193, sens=0.408193, spec=0.953466
+epoch=63 iter=8 train: total=1.726627, prob=0.056085, batch=0.008125, channel=0.001307, cls=0.485889, gauss=0.190232, aux_recon=0.844734, aux_kl=0.022291
+epoch=63 test: acc=0.822664, f1=0.407254, auc=0.946550, bac=0.381654, sens=0.381654, spec=0.955084
+epoch=63 val: acc=0.823620, f1=0.432575, auc=0.956250, bac=0.398133, sens=0.398133, spec=0.953843
+epoch=63 iter=18 train: total=1.598618, prob=0.050349, batch=0.007505, channel=0.001103, cls=0.431937, gauss=0.196977, aux_recon=0.806998, aux_kl=0.021631
+epoch=63 test: acc=0.828085, f1=0.435242, auc=0.943491, bac=0.404261, sens=0.404261, spec=0.957090
+epoch=63 val: acc=0.820526, f1=0.430864, auc=0.954224, bac=0.405831, sens=0.405831, spec=0.955647
+epoch=64 iter=2 train: total=1.653439, prob=0.060599, batch=0.007672, channel=0.001202, cls=0.441141, gauss=0.186752, aux_recon=0.799792, aux_kl=0.021021
+epoch=64 test: acc=0.826794, f1=0.425958, auc=0.945507, bac=0.397189, sens=0.397189, spec=0.957943
+epoch=64 val: acc=0.823105, f1=0.421516, auc=0.954136, bac=0.391591, sens=0.391591, spec=0.955861
+epoch=64 iter=12 train: total=1.693435, prob=0.065056, batch=0.007842, channel=0.001198, cls=0.409492, gauss=0.189020, aux_recon=0.847167, aux_kl=0.021910
+epoch=64 test: acc=0.824987, f1=0.405883, auc=0.943572, bac=0.375920, sens=0.375920, spec=0.952432
+epoch=64 val: acc=0.818979, f1=0.379755, auc=0.951570, bac=0.361540, sens=0.361540, spec=0.951604
+epoch=64 iter=22 train: total=1.565392, prob=0.036727, batch=0.007459, channel=0.001103, cls=0.481706, gauss=0.199801, aux_recon=0.792228, aux_kl=0.022212
+epoch=64 test: acc=0.822148, f1=0.450875, auc=0.944598, bac=0.415072, sens=0.415072, spec=0.956085
+epoch=64 val: acc=0.821042, f1=0.432295, auc=0.953326, bac=0.398724, sens=0.398724, spec=0.955188
+epoch=65 iter=6 train: total=1.553029, prob=0.043592, batch=0.006366, channel=0.001152, cls=0.434741, gauss=0.181886, aux_recon=0.804947, aux_kl=0.020185
+epoch=65 test: acc=0.817243, f1=0.449166, auc=0.944996, bac=0.420792, sens=0.420792, spec=0.958356
+epoch=65 val: acc=0.818463, f1=0.462025, auc=0.953288, bac=0.434285, sens=0.434285, spec=0.957800
+epoch=65 iter=16 train: total=1.550773, prob=0.045706, batch=0.007116, channel=0.001138, cls=0.362086, gauss=0.195493, aux_recon=0.855722, aux_kl=0.023451
+epoch=65 test: acc=0.827052, f1=0.436418, auc=0.943595, bac=0.397418, sens=0.397418, spec=0.953624
+epoch=65 val: acc=0.826199, f1=0.431803, auc=0.952722, bac=0.396546, sens=0.396546, spec=0.953262
+epoch=65 iter=26 train: total=1.612641, prob=0.047637, batch=0.009194, channel=0.001141, cls=0.384224, gauss=0.189129, aux_recon=0.865769, aux_kl=0.022006
+epoch=65 test: acc=0.827310, f1=0.430266, auc=0.947083, bac=0.399030, sens=0.399030, spec=0.956667
+epoch=65 val: acc=0.826199, f1=0.437648, auc=0.954110, bac=0.407677, sens=0.407677, spec=0.956486
+epoch=66 iter=10 train: total=1.555208, prob=0.050492, batch=0.006488, channel=0.001172, cls=0.383686, gauss=0.191135, aux_recon=0.821192, aux_kl=0.021530
+epoch=66 test: acc=0.823180, f1=0.429562, auc=0.944948, bac=0.401690, sens=0.401690, spec=0.956058
+epoch=66 val: acc=0.819495, f1=0.447179, auc=0.952527, bac=0.415404, sens=0.415404, spec=0.954721
+epoch=66 iter=20 train: total=1.536945, prob=0.051080, batch=0.007985, channel=0.001235, cls=0.360562, gauss=0.175644, aux_recon=0.809222, aux_kl=0.019973
+epoch=66 test: acc=0.825503, f1=0.433473, auc=0.944905, bac=0.391013, sens=0.391013, spec=0.952115
+epoch=66 val: acc=0.822073, f1=0.392923, auc=0.954032, bac=0.365792, sens=0.365792, spec=0.951369
+epoch=67 iter=4 train: total=1.658769, prob=0.046224, batch=0.007476, channel=0.001265, cls=0.488895, gauss=0.175792, aux_recon=0.831683, aux_kl=0.020804
+epoch=67 test: acc=0.827827, f1=0.457326, auc=0.945642, bac=0.422857, sens=0.422857, spec=0.958192
+epoch=67 val: acc=0.820526, f1=0.433236, auc=0.951838, bac=0.400245, sens=0.400245, spec=0.956540
+epoch=67 iter=14 train: total=1.679175, prob=0.044893, batch=0.007253, channel=0.001113, cls=0.511927, gauss=0.187396, aux_recon=0.838347, aux_kl=0.020381
+epoch=67 test: acc=0.823438, f1=0.443674, auc=0.941482, bac=0.412463, sens=0.412463, spec=0.955307
+epoch=67 val: acc=0.823620, f1=0.459809, auc=0.950999, bac=0.417320, sens=0.417320, spec=0.954590
+epoch=67 iter=24 train: total=1.733150, prob=0.056772, batch=0.007572, channel=0.001189, cls=0.487318, gauss=0.188402, aux_recon=0.853533, aux_kl=0.019831
+epoch=67 test: acc=0.831957, f1=0.422906, auc=0.945860, bac=0.401028, sens=0.401028, spec=0.958583
+epoch=67 val: acc=0.824136, f1=0.401543, auc=0.953179, bac=0.379381, sens=0.379381, spec=0.956422
+epoch=68 iter=8 train: total=1.562559, prob=0.037447, batch=0.007241, channel=0.001185, cls=0.460092, gauss=0.179783, aux_recon=0.810979, aux_kl=0.020160
+epoch=68 test: acc=0.826794, f1=0.449988, auc=0.944732, bac=0.414838, sens=0.414838, spec=0.956266
+epoch=68 val: acc=0.823105, f1=0.453471, auc=0.953886, bac=0.414189, sens=0.414189, spec=0.955079
+epoch=68 iter=18 train: total=1.607533, prob=0.048282, batch=0.008279, channel=0.001170, cls=0.413742, gauss=0.195308, aux_recon=0.836114, aux_kl=0.022469
+epoch=68 test: acc=0.823955, f1=0.424703, auc=0.946006, bac=0.386390, sens=0.386390, spec=0.952072
+epoch=68 val: acc=0.827746, f1=0.454746, auc=0.953206, bac=0.408434, sens=0.408434, spec=0.953371
+epoch=69 iter=2 train: total=1.590492, prob=0.041287, batch=0.009289, channel=0.001160, cls=0.421819, gauss=0.185406, aux_recon=0.837124, aux_kl=0.020827
+epoch=69 test: acc=0.837636, f1=0.462754, auc=0.944908, bac=0.432188, sens=0.432188, spec=0.962548
+epoch=69 val: acc=0.826715, f1=0.462213, auc=0.953606, bac=0.423072, sens=0.423072, spec=0.959433
+epoch=69 iter=12 train: total=1.676881, prob=0.057516, batch=0.007569, channel=0.001056, cls=0.455968, gauss=0.180182, aux_recon=0.826987, aux_kl=0.020748
+epoch=69 test: acc=0.826278, f1=0.405436, auc=0.946346, bac=0.384694, sens=0.384694, spec=0.956496
+epoch=69 val: acc=0.831356, f1=0.382491, auc=0.954108, bac=0.376975, sens=0.376975, spec=0.957097
+epoch=69 iter=22 train: total=1.591620, prob=0.043642, batch=0.008363, channel=0.001082, cls=0.459807, gauss=0.176070, aux_recon=0.799429, aux_kl=0.021212
+epoch=69 test: acc=0.819824, f1=0.427352, auc=0.943211, bac=0.385918, sens=0.385918, spec=0.948993
+epoch=69 val: acc=0.822073, f1=0.423059, auc=0.950093, bac=0.382927, sens=0.382927, spec=0.949900
+epoch=70 iter=6 train: total=1.605169, prob=0.034343, batch=0.006857, channel=0.001034, cls=0.460058, gauss=0.185955, aux_recon=0.873802, aux_kl=0.020890
+epoch=70 test: acc=0.825503, f1=0.429154, auc=0.946947, bac=0.401237, sens=0.401237, spec=0.959272
+epoch=70 val: acc=0.821042, f1=0.386299, auc=0.955820, bac=0.373625, sens=0.373625, spec=0.957640
+epoch=70 iter=16 train: total=1.610843, prob=0.048748, batch=0.006795, channel=0.000985, cls=0.430600, gauss=0.185202, aux_recon=0.838062, aux_kl=0.021148
+epoch=70 test: acc=0.830924, f1=0.438018, auc=0.945572, bac=0.401385, sens=0.401385, spec=0.955537
+epoch=70 val: acc=0.824652, f1=0.401180, auc=0.953945, bac=0.378300, sens=0.378300, spec=0.954443
+epoch=70 iter=26 train: total=1.764791, prob=0.052571, batch=0.007561, channel=0.001051, cls=0.516569, gauss=0.188310, aux_recon=0.878383, aux_kl=0.020435
+epoch=70 test: acc=0.823696, f1=0.435858, auc=0.946318, bac=0.403128, sens=0.403128, spec=0.956316
+epoch=70 val: acc=0.818463, f1=0.383734, auc=0.950695, bac=0.371561, sens=0.371561, spec=0.954725
+epoch=71 iter=10 train: total=1.696787, prob=0.056055, batch=0.007362, channel=0.001112, cls=0.430513, gauss=0.187641, aux_recon=0.880363, aux_kl=0.021302
+epoch=71 test: acc=0.820599, f1=0.446130, auc=0.943786, bac=0.410518, sens=0.410518, spec=0.951882
+epoch=71 val: acc=0.820010, f1=0.437739, auc=0.953273, bac=0.400501, sens=0.400501, spec=0.952015
+epoch=71 iter=20 train: total=1.654541, prob=0.044907, batch=0.007494, channel=0.001147, cls=0.403499, gauss=0.184811, aux_recon=0.919575, aux_kl=0.020412
+epoch=71 test: acc=0.828859, f1=0.431959, auc=0.945834, bac=0.399463, sens=0.399463, spec=0.958355
+epoch=71 val: acc=0.827746, f1=0.367762, auc=0.954131, bac=0.363539, sens=0.363539, spec=0.958209
+epoch=72 iter=4 train: total=1.566194, prob=0.045365, batch=0.006671, channel=0.001049, cls=0.367517, gauss=0.188387, aux_recon=0.873787, aux_kl=0.020324
+epoch=72 test: acc=0.826020, f1=0.443236, auc=0.945308, bac=0.406788, sens=0.406788, spec=0.953437
+epoch=72 val: acc=0.826715, f1=0.448834, auc=0.950959, bac=0.403853, sens=0.403853, spec=0.953361
+epoch=72 iter=14 train: total=1.467485, prob=0.036990, batch=0.007575, channel=0.001077, cls=0.348901, gauss=0.172163, aux_recon=0.827898, aux_kl=0.020012
+epoch=72 test: acc=0.829892, f1=0.456542, auc=0.944988, bac=0.424722, sens=0.424722, spec=0.958847
+epoch=72 val: acc=0.826715, f1=0.405956, auc=0.955709, bac=0.390776, sens=0.390776, spec=0.957460
+epoch=72 iter=24 train: total=1.694512, prob=0.049403, batch=0.007138, channel=0.001143, cls=0.477843, gauss=0.186340, aux_recon=0.866158, aux_kl=0.020490
+epoch=72 test: acc=0.832215, f1=0.457692, auc=0.948490, bac=0.421750, sens=0.421750, spec=0.958298
+epoch=72 val: acc=0.821558, f1=0.365307, auc=0.956905, bac=0.357829, sens=0.357829, spec=0.955262
+epoch=73 iter=8 train: total=1.523362, prob=0.045854, batch=0.006088, channel=0.001020, cls=0.366556, gauss=0.181272, aux_recon=0.836352, aux_kl=0.019788
+epoch=73 test: acc=0.829892, f1=0.441249, auc=0.946390, bac=0.409929, sens=0.409929, spec=0.957245
+epoch=73 val: acc=0.823105, f1=0.451674, auc=0.957965, bac=0.413970, sens=0.413970, spec=0.954889
+epoch=73 iter=18 train: total=1.654735, prob=0.049783, batch=0.007393, channel=0.001018, cls=0.445928, gauss=0.175031, aux_recon=0.856497, aux_kl=0.017856
+epoch=73 test: acc=0.822922, f1=0.438448, auc=0.946532, bac=0.408405, sens=0.408405, spec=0.952813
+epoch=73 val: acc=0.820526, f1=0.375043, auc=0.956278, bac=0.366526, sens=0.366526, spec=0.951365
+epoch=74 iter=2 train: total=1.641009, prob=0.044442, batch=0.007479, channel=0.001081, cls=0.459817, gauss=0.182967, aux_recon=0.853129, aux_kl=0.019514
+epoch=74 test: acc=0.830666, f1=0.420942, auc=0.946155, bac=0.394774, sens=0.394774, spec=0.957971
+epoch=74 val: acc=0.827746, f1=0.405989, auc=0.956105, bac=0.385869, sens=0.385869, spec=0.956679
+epoch=74 iter=12 train: total=1.516543, prob=0.047068, batch=0.006158, channel=0.000895, cls=0.328045, gauss=0.181359, aux_recon=0.862384, aux_kl=0.021104
+epoch=74 test: acc=0.821631, f1=0.427598, auc=0.944411, bac=0.400044, sens=0.400044, spec=0.953110
+epoch=74 val: acc=0.825683, f1=0.394730, auc=0.954564, bac=0.386065, sens=0.386065, spec=0.954104
+epoch=74 iter=22 train: total=1.454113, prob=0.035850, batch=0.006454, channel=0.000945, cls=0.343437, gauss=0.178334, aux_recon=0.837671, aux_kl=0.019338
+epoch=74 test: acc=0.831957, f1=0.432111, auc=0.946818, bac=0.396489, sens=0.396489, spec=0.958315
+epoch=74 val: acc=0.828778, f1=0.452528, auc=0.955947, bac=0.413040, sens=0.413040, spec=0.957788
+epoch=75 iter=6 train: total=1.482414, prob=0.045530, batch=0.006322, channel=0.000985, cls=0.361692, gauss=0.174114, aux_recon=0.800743, aux_kl=0.018466
+epoch=75 test: acc=0.827827, f1=0.443122, auc=0.944592, bac=0.407507, sens=0.407507, spec=0.955747
+epoch=75 val: acc=0.830325, f1=0.450894, auc=0.956350, bac=0.407759, sens=0.407759, spec=0.954800
+epoch=75 iter=16 train: total=1.622430, prob=0.044740, batch=0.007764, channel=0.000982, cls=0.406714, gauss=0.184383, aux_recon=0.884114, aux_kl=0.019945
+epoch=75 test: acc=0.829117, f1=0.441342, auc=0.946145, bac=0.415874, sens=0.415874, spec=0.959812
+epoch=75 val: acc=0.823105, f1=0.436866, auc=0.956274, bac=0.411097, sens=0.411097, spec=0.957439
+epoch=75 iter=26 train: total=1.532755, prob=0.036089, batch=0.007377, channel=0.000918, cls=0.391338, gauss=0.179953, aux_recon=0.858151, aux_kl=0.018705
+epoch=75 test: acc=0.830408, f1=0.457348, auc=0.945933, bac=0.422311, sens=0.422311, spec=0.957569
+epoch=75 val: acc=0.828778, f1=0.456138, auc=0.956864, bac=0.418568, sens=0.418568, spec=0.956733
+epoch=76 iter=10 train: total=1.645963, prob=0.050462, batch=0.006603, channel=0.001021, cls=0.457826, gauss=0.174155, aux_recon=0.840309, aux_kl=0.018622
+epoch=76 test: acc=0.829375, f1=0.460070, auc=0.947497, bac=0.422312, sens=0.422312, spec=0.955286
+epoch=76 val: acc=0.830325, f1=0.447478, auc=0.956690, bac=0.416434, sens=0.416434, spec=0.955479
+epoch=76 iter=20 train: total=1.620877, prob=0.060443, batch=0.006974, channel=0.000895, cls=0.381117, gauss=0.191222, aux_recon=0.837606, aux_kl=0.021336
+epoch=76 test: acc=0.826278, f1=0.450468, auc=0.944031, bac=0.420889, sens=0.420889, spec=0.955369
+epoch=76 val: acc=0.824652, f1=0.426329, auc=0.953983, bac=0.400080, sens=0.400080, spec=0.954993
+epoch=77 iter=4 train: total=1.632808, prob=0.050984, batch=0.006588, channel=0.000958, cls=0.462998, gauss=0.174866, aux_recon=0.820078, aux_kl=0.018709
+epoch=77 test: acc=0.827568, f1=0.402050, auc=0.945377, bac=0.387047, sens=0.387047, spec=0.960561
+epoch=77 val: acc=0.820010, f1=0.393688, auc=0.954690, bac=0.382254, sens=0.382254, spec=0.958612
+epoch=77 iter=14 train: total=1.540285, prob=0.053946, batch=0.006269, channel=0.000912, cls=0.311422, gauss=0.166863, aux_recon=0.868764, aux_kl=0.018831
+epoch=77 test: acc=0.823438, f1=0.436573, auc=0.946410, bac=0.402967, sens=0.402967, spec=0.952962
+epoch=77 val: acc=0.829293, f1=0.446526, auc=0.956954, bac=0.409502, sens=0.409502, spec=0.955003
+epoch=77 iter=24 train: total=1.554397, prob=0.045494, batch=0.006296, channel=0.000992, cls=0.382367, gauss=0.182687, aux_recon=0.851474, aux_kl=0.019343
+epoch=77 test: acc=0.827310, f1=0.458042, auc=0.946563, bac=0.424395, sens=0.424395, spec=0.957875
+epoch=77 val: acc=0.833419, f1=0.457827, auc=0.955755, bac=0.420153, sens=0.420153, spec=0.958363
+epoch=78 iter=8 train: total=1.618536, prob=0.041311, batch=0.006353, channel=0.001008, cls=0.407872, gauss=0.169903, aux_recon=0.911735, aux_kl=0.017792
+epoch=78 test: acc=0.818018, f1=0.432847, auc=0.946786, bac=0.406565, sens=0.406565, spec=0.954462
+epoch=78 val: acc=0.825168, f1=0.385312, auc=0.955184, bac=0.377905, sens=0.377905, spec=0.956001
+epoch=78 iter=18 train: total=1.480347, prob=0.038294, batch=0.005822, channel=0.000943, cls=0.382016, gauss=0.174960, aux_recon=0.819834, aux_kl=0.018787
+epoch=78 test: acc=0.825245, f1=0.429289, auc=0.945004, bac=0.398204, sens=0.398204, spec=0.957033
+epoch=78 val: acc=0.822073, f1=0.399203, auc=0.952561, bac=0.378570, sens=0.378570, spec=0.955798
+epoch=79 iter=2 train: total=1.729257, prob=0.054421, batch=0.007604, channel=0.000948, cls=0.494162, gauss=0.181495, aux_recon=0.857375, aux_kl=0.019429
+epoch=79 test: acc=0.827052, f1=0.431439, auc=0.944743, bac=0.401679, sens=0.401679, spec=0.955168
+epoch=79 val: acc=0.829293, f1=0.442961, auc=0.955031, bac=0.414468, sens=0.414468, spec=0.955959
+epoch=79 iter=12 train: total=1.444774, prob=0.028945, batch=0.006065, channel=0.000923, cls=0.328748, gauss=0.182615, aux_recon=0.881177, aux_kl=0.019857
+epoch=79 test: acc=0.830150, f1=0.412481, auc=0.947822, bac=0.385534, sens=0.385534, spec=0.959066
+epoch=79 val: acc=0.825168, f1=0.454210, auc=0.953180, bac=0.410435, sens=0.410435, spec=0.957824
+epoch=79 iter=22 train: total=1.673173, prob=0.060949, batch=0.006018, channel=0.000884, cls=0.486866, gauss=0.173208, aux_recon=0.793407, aux_kl=0.018116
+epoch=79 test: acc=0.824471, f1=0.458380, auc=0.946840, bac=0.429635, sens=0.429635, spec=0.958261
+epoch=79 val: acc=0.825683, f1=0.459940, auc=0.955634, bac=0.427739, sens=0.427739, spec=0.957800
+epoch=80 iter=6 train: total=1.709821, prob=0.054653, batch=0.006285, channel=0.000870, cls=0.450630, gauss=0.182786, aux_recon=0.894132, aux_kl=0.019666
+epoch=80 test: acc=0.824729, f1=0.423105, auc=0.944230, bac=0.388792, sens=0.388792, spec=0.953741
+epoch=80 val: acc=0.821042, f1=0.403280, auc=0.954010, bac=0.373206, sens=0.373206, spec=0.952850
+epoch=80 iter=16 train: total=1.501580, prob=0.037902, batch=0.006266, channel=0.000930, cls=0.416824, gauss=0.166344, aux_recon=0.804890, aux_kl=0.017604
+epoch=80 test: acc=0.828085, f1=0.437565, auc=0.943506, bac=0.405114, sens=0.405114, spec=0.956750
+epoch=80 val: acc=0.816400, f1=0.413009, auc=0.951051, bac=0.383663, sens=0.383663, spec=0.954265
+epoch=80 iter=26 train: total=1.598898, prob=0.051769, batch=0.006336, channel=0.000915, cls=0.389523, gauss=0.177941, aux_recon=0.858398, aux_kl=0.018349
+epoch=80 test: acc=0.832473, f1=0.453183, auc=0.947424, bac=0.414456, sens=0.414456, spec=0.956546
+epoch=80 val: acc=0.830841, f1=0.426388, auc=0.955372, bac=0.399014, sens=0.399014, spec=0.956391
+epoch=81 iter=10 train: total=1.552465, prob=0.046836, batch=0.006783, channel=0.000916, cls=0.405521, gauss=0.176034, aux_recon=0.816318, aux_kl=0.018468
+epoch=81 test: acc=0.826020, f1=0.424089, auc=0.947147, bac=0.393955, sens=0.393955, spec=0.955989
+epoch=81 val: acc=0.832388, f1=0.437386, auc=0.955167, bac=0.410114, sens=0.410114, spec=0.956318
+epoch=81 iter=20 train: total=1.612147, prob=0.038124, batch=0.006575, channel=0.000843, cls=0.439870, gauss=0.180455, aux_recon=0.887543, aux_kl=0.018860
+epoch=81 test: acc=0.819308, f1=0.386594, auc=0.946653, bac=0.365616, sens=0.365616, spec=0.954129
+epoch=81 val: acc=0.825683, f1=0.401813, auc=0.955747, bac=0.379431, sens=0.379431, spec=0.955150
+epoch=82 iter=4 train: total=1.503603, prob=0.052763, batch=0.006289, channel=0.000896, cls=0.307946, gauss=0.173458, aux_recon=0.840718, aux_kl=0.019184
+epoch=82 test: acc=0.827827, f1=0.431368, auc=0.947448, bac=0.401720, sens=0.401720, spec=0.956085
+epoch=82 val: acc=0.829809, f1=0.404830, auc=0.954211, bac=0.384287, sens=0.384287, spec=0.955826
+epoch=82 iter=14 train: total=1.603606, prob=0.040651, batch=0.006361, channel=0.000889, cls=0.458157, gauss=0.180825, aux_recon=0.849797, aux_kl=0.018180
+epoch=82 test: acc=0.826536, f1=0.453555, auc=0.946533, bac=0.421994, sens=0.421994, spec=0.956569
+epoch=82 val: acc=0.821558, f1=0.451853, auc=0.953980, bac=0.420929, sens=0.420929, spec=0.955826
+epoch=82 iter=24 train: total=1.466021, prob=0.036399, batch=0.005953, channel=0.000779, cls=0.339723, gauss=0.162323, aux_recon=0.859016, aux_kl=0.017350
+epoch=82 test: acc=0.826794, f1=0.474164, auc=0.946699, bac=0.443411, sens=0.443411, spec=0.958840
+epoch=82 val: acc=0.824136, f1=0.456370, auc=0.950682, bac=0.420952, sens=0.420952, spec=0.957562
+epoch=83 iter=8 train: total=1.702058, prob=0.058796, batch=0.006781, channel=0.000766, cls=0.512076, gauss=0.178685, aux_recon=0.800722, aux_kl=0.019329
+epoch=83 test: acc=0.823955, f1=0.439182, auc=0.945013, bac=0.400229, sens=0.400229, spec=0.952571
+epoch=83 val: acc=0.831356, f1=0.456866, auc=0.952410, bac=0.414130, sens=0.414130, spec=0.954637
+epoch=83 iter=18 train: total=1.553524, prob=0.051693, batch=0.005730, channel=0.000937, cls=0.420133, gauss=0.179806, aux_recon=0.788473, aux_kl=0.018029
+epoch=83 test: acc=0.825503, f1=0.420347, auc=0.946768, bac=0.395550, sens=0.395550, spec=0.958324
+epoch=83 val: acc=0.828778, f1=0.457388, auc=0.955427, bac=0.419773, sens=0.419773, spec=0.958799
+epoch=84 iter=2 train: total=1.598328, prob=0.045007, batch=0.005941, channel=0.000829, cls=0.390817, gauss=0.177691, aux_recon=0.895203, aux_kl=0.017999
+epoch=84 test: acc=0.822922, f1=0.419011, auc=0.944128, bac=0.391772, sens=0.391772, spec=0.953418
+epoch=84 val: acc=0.824136, f1=0.376748, auc=0.951011, bac=0.365183, sens=0.365183, spec=0.953584
+epoch=84 iter=12 train: total=1.591928, prob=0.044323, batch=0.005828, channel=0.000867, cls=0.418080, gauss=0.166454, aux_recon=0.866838, aux_kl=0.017989
+epoch=84 test: acc=0.826536, f1=0.453294, auc=0.947989, bac=0.426057, sens=0.426057, spec=0.960268
+epoch=84 val: acc=0.821042, f1=0.462948, auc=0.952089, bac=0.428368, sens=0.428368, spec=0.957988
+epoch=84 iter=22 train: total=1.602791, prob=0.051372, batch=0.005777, channel=0.000832, cls=0.484339, gauss=0.163536, aux_recon=0.777438, aux_kl=0.017112
+epoch=84 test: acc=0.832989, f1=0.452954, auc=0.948921, bac=0.415546, sens=0.415546, spec=0.957230
+epoch=84 val: acc=0.829809, f1=0.444895, auc=0.954146, bac=0.410219, sens=0.410219, spec=0.956810
+epoch=85 iter=6 train: total=1.605088, prob=0.047029, batch=0.006781, channel=0.000767, cls=0.449719, gauss=0.172114, aux_recon=0.825684, aux_kl=0.018488
+epoch=85 test: acc=0.831699, f1=0.460677, auc=0.949560, bac=0.429316, sens=0.429316, spec=0.959574
+epoch=85 val: acc=0.831872, f1=0.466426, auc=0.955058, bac=0.428376, sens=0.428376, spec=0.959392
+epoch=85 iter=16 train: total=1.532892, prob=0.041441, batch=0.006202, channel=0.000860, cls=0.430896, gauss=0.162057, aux_recon=0.806088, aux_kl=0.018710
+epoch=85 test: acc=0.828085, f1=0.445584, auc=0.946653, bac=0.407801, sens=0.407801, spec=0.954970
+epoch=85 val: acc=0.834451, f1=0.449479, auc=0.952742, bac=0.408224, sens=0.408224, spec=0.956119
+epoch=85 iter=26 train: total=1.524790, prob=0.043275, batch=0.006195, channel=0.000816, cls=0.371994, gauss=0.162243, aux_recon=0.848388, aux_kl=0.016977
+epoch=85 test: acc=0.829117, f1=0.436042, auc=0.946317, bac=0.407003, sens=0.407003, spec=0.957606
+epoch=85 val: acc=0.826715, f1=0.495878, auc=0.954326, bac=0.455449, sens=0.455449, spec=0.956456
+epoch=86 iter=10 train: total=1.546956, prob=0.042638, batch=0.005935, channel=0.000838, cls=0.359716, gauss=0.171781, aux_recon=0.887335, aux_kl=0.018066
+epoch=86 test: acc=0.826794, f1=0.464741, auc=0.946737, bac=0.427976, sens=0.427976, spec=0.953747
+epoch=86 val: acc=0.826715, f1=0.463012, auc=0.953180, bac=0.424842, sens=0.424842, spec=0.953799
+epoch=86 iter=20 train: total=1.521533, prob=0.036455, batch=0.005686, channel=0.000819, cls=0.378999, gauss=0.190667, aux_recon=0.874160, aux_kl=0.019807
+epoch=86 test: acc=0.827052, f1=0.429153, auc=0.947845, bac=0.394814, sens=0.394814, spec=0.956217
+epoch=86 val: acc=0.828262, f1=0.455285, auc=0.954861, bac=0.414198, sens=0.414198, spec=0.956452
+epoch=87 iter=4 train: total=1.656074, prob=0.045289, batch=0.006215, channel=0.000895, cls=0.468997, gauss=0.164147, aux_recon=0.871368, aux_kl=0.017504
+epoch=87 test: acc=0.830924, f1=0.457296, auc=0.945453, bac=0.418894, sens=0.418894, spec=0.956713
+epoch=87 val: acc=0.829809, f1=0.453711, auc=0.951289, bac=0.412703, sens=0.412703, spec=0.956116
+epoch=87 iter=14 train: total=1.638692, prob=0.052847, batch=0.006865, channel=0.000829, cls=0.422311, gauss=0.184476, aux_recon=0.854861, aux_kl=0.019019
+epoch=87 test: acc=0.821631, f1=0.461551, auc=0.946012, bac=0.436879, sens=0.436879, spec=0.959179
+epoch=87 val: acc=0.826715, f1=0.461460, auc=0.950963, bac=0.432633, sens=0.432633, spec=0.959773
+epoch=87 iter=24 train: total=1.640136, prob=0.047006, batch=0.006184, channel=0.000825, cls=0.444799, gauss=0.159255, aux_recon=0.872599, aux_kl=0.016944
+epoch=87 test: acc=0.825245, f1=0.443974, auc=0.945954, bac=0.404182, sens=0.404182, spec=0.952260
+epoch=87 val: acc=0.829809, f1=0.430963, auc=0.955380, bac=0.395947, sens=0.395947, spec=0.952855
+epoch=88 iter=8 train: total=1.432658, prob=0.030865, batch=0.005785, channel=0.000814, cls=0.330464, gauss=0.160967, aux_recon=0.864138, aux_kl=0.016400
+epoch=88 test: acc=0.824729, f1=0.421356, auc=0.946427, bac=0.393503, sens=0.393503, spec=0.954958
+epoch=88 val: acc=0.833419, f1=0.446664, auc=0.953233, bac=0.413655, sens=0.413655, spec=0.956443
+epoch=88 iter=18 train: total=1.417392, prob=0.033345, batch=0.006446, channel=0.000702, cls=0.346793, gauss=0.169203, aux_recon=0.813700, aux_kl=0.017762
+epoch=88 test: acc=0.827310, f1=0.448726, auc=0.943298, bac=0.418138, sens=0.418138, spec=0.957349
+epoch=88 val: acc=0.827746, f1=0.492298, auc=0.954162, bac=0.450680, sens=0.450680, spec=0.957740
+epoch=89 iter=2 train: total=1.463673, prob=0.038939, batch=0.006022, channel=0.000767, cls=0.337747, gauss=0.170501, aux_recon=0.844433, aux_kl=0.018554
+epoch=89 test: acc=0.823955, f1=0.411505, auc=0.947757, bac=0.380487, sens=0.380487, spec=0.953042
+epoch=89 val: acc=0.826199, f1=0.437455, auc=0.955526, bac=0.395811, sens=0.395811, spec=0.953510
+epoch=89 iter=12 train: total=1.592561, prob=0.047089, batch=0.006400, channel=0.000835, cls=0.391266, gauss=0.165368, aux_recon=0.875291, aux_kl=0.016760
+epoch=89 test: acc=0.820341, f1=0.428766, auc=0.948395, bac=0.404260, sens=0.404260, spec=0.956320
+epoch=89 val: acc=0.824136, f1=0.442825, auc=0.953310, bac=0.417329, sens=0.417329, spec=0.957566
+epoch=89 iter=22 train: total=1.567838, prob=0.038354, batch=0.005438, channel=0.000796, cls=0.439277, gauss=0.176514, aux_recon=0.855050, aux_kl=0.017494
+epoch=89 test: acc=0.825245, f1=0.454499, auc=0.948026, bac=0.411578, sens=0.411578, spec=0.951250
+epoch=89 val: acc=0.834451, f1=0.411153, auc=0.953351, bac=0.382470, sens=0.382470, spec=0.954117
+epoch=90 iter=6 train: total=1.413536, prob=0.039364, batch=0.006123, channel=0.000775, cls=0.292020, gauss=0.170280, aux_recon=0.836930, aux_kl=0.017572
+epoch=90 test: acc=0.834022, f1=0.444867, auc=0.948123, bac=0.411112, sens=0.411112, spec=0.958648
+epoch=90 val: acc=0.838061, f1=0.454521, auc=0.954958, bac=0.417859, sens=0.417859, spec=0.959826
+epoch=90 iter=16 train: total=1.725264, prob=0.048922, batch=0.005920, channel=0.000816, cls=0.509383, gauss=0.165733, aux_recon=0.885633, aux_kl=0.017065
+epoch=90 test: acc=0.822922, f1=0.448895, auc=0.947294, bac=0.414717, sens=0.414717, spec=0.955485
+epoch=90 val: acc=0.832904, f1=0.446352, auc=0.956260, bac=0.411920, sens=0.411920, spec=0.957885
+epoch=90 iter=26 train: total=1.544332, prob=0.035948, batch=0.005287, channel=0.000760, cls=0.452000, gauss=0.171160, aux_recon=0.833185, aux_kl=0.018118
+epoch=90 test: acc=0.829633, f1=0.444471, auc=0.945251, bac=0.414980, sens=0.414980, spec=0.958487
+epoch=90 val: acc=0.821558, f1=0.397304, auc=0.953232, bac=0.377683, sens=0.377683, spec=0.956501
+epoch=91 iter=10 train: total=1.458394, prob=0.038250, batch=0.005991, channel=0.000768, cls=0.407266, gauss=0.163929, aux_recon=0.774255, aux_kl=0.016422
+epoch=91 test: acc=0.825245, f1=0.445687, auc=0.945245, bac=0.413371, sens=0.413371, spec=0.955440
+epoch=91 val: acc=0.828778, f1=0.401225, auc=0.956828, bac=0.384951, sens=0.384951, spec=0.956876
+epoch=91 iter=20 train: total=1.459633, prob=0.039192, batch=0.006505, channel=0.000766, cls=0.352408, gauss=0.170911, aux_recon=0.819611, aux_kl=0.018553
+epoch=91 test: acc=0.825503, f1=0.405147, auc=0.944523, bac=0.378886, sens=0.378886, spec=0.953043
+epoch=91 val: acc=0.830841, f1=0.403855, auc=0.952018, bac=0.388052, sens=0.388052, spec=0.954332
+epoch=92 iter=4 train: total=1.547469, prob=0.047600, batch=0.006578, channel=0.000734, cls=0.335227, gauss=0.168166, aux_recon=0.882536, aux_kl=0.017715
+epoch=92 test: acc=0.825761, f1=0.471784, auc=0.944878, bac=0.440190, sens=0.440190, spec=0.955788
+epoch=92 val: acc=0.830841, f1=0.478462, auc=0.952986, bac=0.441884, sens=0.441884, spec=0.956764
+epoch=92 iter=14 train: total=1.470802, prob=0.039124, batch=0.007180, channel=0.000746, cls=0.387494, gauss=0.166275, aux_recon=0.790104, aux_kl=0.016946
+epoch=92 test: acc=0.833247, f1=0.437275, auc=0.945798, bac=0.404242, sens=0.404242, spec=0.956858
+epoch=92 val: acc=0.831872, f1=0.385598, auc=0.956420, bac=0.373033, sens=0.373033, spec=0.956011
+epoch=92 iter=24 train: total=1.432240, prob=0.037604, batch=0.005729, channel=0.000703, cls=0.315111, gauss=0.162900, aux_recon=0.846730, aux_kl=0.017771
+epoch=92 test: acc=0.821115, f1=0.436011, auc=0.945629, bac=0.406556, sens=0.406556, spec=0.956597
+epoch=92 val: acc=0.822073, f1=0.435452, auc=0.955339, bac=0.402873, sens=0.402873, spec=0.955602
+epoch=93 iter=8 train: total=1.786705, prob=0.039980, batch=0.005714, channel=0.000738, cls=0.529989, gauss=0.159561, aux_recon=0.974775, aux_kl=0.015671
+epoch=93 test: acc=0.824987, f1=0.457758, auc=0.946659, bac=0.428852, sens=0.428852, spec=0.956994
+epoch=93 val: acc=0.827231, f1=0.436625, auc=0.956721, bac=0.411113, sens=0.411113, spec=0.957720
+epoch=93 iter=18 train: total=1.476120, prob=0.038414, batch=0.005983, channel=0.000758, cls=0.408945, gauss=0.170303, aux_recon=0.788804, aux_kl=0.018616
+epoch=93 test: acc=0.833505, f1=0.469584, auc=0.949581, bac=0.431721, sens=0.431721, spec=0.957499
+epoch=93 val: acc=0.835998, f1=0.408182, auc=0.957296, bac=0.387779, sens=0.387779, spec=0.957928
+epoch=94 iter=2 train: total=1.475623, prob=0.039578, batch=0.005819, channel=0.000770, cls=0.399438, gauss=0.165577, aux_recon=0.794160, aux_kl=0.016909
+epoch=94 test: acc=0.826278, f1=0.430613, auc=0.945592, bac=0.403801, sens=0.403801, spec=0.956197
+epoch=94 val: acc=0.829293, f1=0.459547, auc=0.956390, bac=0.423711, sens=0.423711, spec=0.956392
+epoch=94 iter=12 train: total=1.420175, prob=0.036987, batch=0.005565, channel=0.000699, cls=0.282868, gauss=0.165832, aux_recon=0.871452, aux_kl=0.016953
+epoch=94 test: acc=0.833764, f1=0.433840, auc=0.946325, bac=0.403410, sens=0.403410, spec=0.958674
+epoch=94 val: acc=0.828262, f1=0.448404, auc=0.951958, bac=0.407730, sens=0.407730, spec=0.956773
+epoch=94 iter=22 train: total=1.573332, prob=0.040113, batch=0.006014, channel=0.000806, cls=0.385328, gauss=0.157895, aux_recon=0.901827, aux_kl=0.016193
+epoch=94 test: acc=0.827052, f1=0.448521, auc=0.947020, bac=0.418810, sens=0.418810, spec=0.954126
+epoch=94 val: acc=0.829293, f1=0.440611, auc=0.955928, bac=0.404602, sens=0.404602, spec=0.954798
+epoch=95 iter=6 train: total=1.525558, prob=0.042433, batch=0.006277, channel=0.000748, cls=0.359868, gauss=0.176286, aux_recon=0.863839, aux_kl=0.018045
+epoch=95 test: acc=0.829892, f1=0.464927, auc=0.947240, bac=0.426247, sens=0.426247, spec=0.956987
+epoch=95 val: acc=0.826715, f1=0.393877, auc=0.955386, bac=0.379526, sens=0.379526, spec=0.956434
+epoch=95 iter=16 train: total=1.341396, prob=0.037161, batch=0.006194, channel=0.000751, cls=0.317548, gauss=0.162553, aux_recon=0.750606, aux_kl=0.017288
+epoch=95 test: acc=0.826278, f1=0.434304, auc=0.945460, bac=0.395213, sens=0.395213, spec=0.952403
+epoch=95 val: acc=0.827231, f1=0.389306, auc=0.954932, bac=0.365760, sens=0.365760, spec=0.952351
+epoch=95 iter=26 train: total=1.481281, prob=0.042620, batch=0.005648, channel=0.000715, cls=0.359991, gauss=0.152964, aux_recon=0.827603, aux_kl=0.016600
+epoch=95 test: acc=0.831182, f1=0.446862, auc=0.948168, bac=0.414602, sens=0.414602, spec=0.956864
+epoch=95 val: acc=0.827231, f1=0.397496, auc=0.953707, bac=0.377995, sens=0.377995, spec=0.956860
+epoch=96 iter=10 train: total=1.442285, prob=0.034348, batch=0.006655, channel=0.000768, cls=0.375513, gauss=0.169182, aux_recon=0.802104, aux_kl=0.017784
+epoch=96 test: acc=0.831182, f1=0.437349, auc=0.946216, bac=0.404095, sens=0.404095, spec=0.954000
+epoch=96 val: acc=0.830841, f1=0.380725, auc=0.956088, bac=0.367769, sens=0.367769, spec=0.954061
+epoch=96 iter=20 train: total=1.453821, prob=0.029751, batch=0.005688, channel=0.000708, cls=0.400670, gauss=0.164024, aux_recon=0.822355, aux_kl=0.016848
+epoch=96 test: acc=0.833505, f1=0.453732, auc=0.945479, bac=0.418468, sens=0.418468, spec=0.959385
+epoch=96 val: acc=0.831356, f1=0.453904, auc=0.951604, bac=0.410953, sens=0.410953, spec=0.957955
+epoch=97 iter=4 train: total=1.390639, prob=0.034167, batch=0.005536, channel=0.000769, cls=0.348047, gauss=0.166016, aux_recon=0.790450, aux_kl=0.016615
+epoch=97 test: acc=0.829375, f1=0.460758, auc=0.947514, bac=0.434198, sens=0.434198, spec=0.960135
+epoch=97 val: acc=0.825168, f1=0.413235, auc=0.955241, bac=0.401649, sens=0.401649, spec=0.958040
+epoch=97 iter=14 train: total=1.574538, prob=0.058520, batch=0.006152, channel=0.000638, cls=0.413991, gauss=0.159084, aux_recon=0.782616, aux_kl=0.015266
+epoch=97 test: acc=0.825245, f1=0.465316, auc=0.947458, bac=0.431481, sens=0.431481, spec=0.957823
+epoch=97 val: acc=0.826199, f1=0.404564, auc=0.953944, bac=0.390750, sens=0.390750, spec=0.957332
+epoch=97 iter=24 train: total=1.638105, prob=0.041432, batch=0.006015, channel=0.000780, cls=0.449005, gauss=0.160549, aux_recon=0.896303, aux_kl=0.016367
+epoch=97 test: acc=0.829375, f1=0.453684, auc=0.943627, bac=0.419347, sens=0.419347, spec=0.956775
+epoch=97 val: acc=0.827746, f1=0.415260, auc=0.954282, bac=0.393339, sens=0.393339, spec=0.955834
+epoch=98 iter=8 train: total=1.549945, prob=0.044689, batch=0.005564, channel=0.000685, cls=0.391764, gauss=0.161225, aux_recon=0.854482, aux_kl=0.016470
+epoch=98 test: acc=0.824471, f1=0.444763, auc=0.946750, bac=0.425561, sens=0.425561, spec=0.958538
+epoch=98 val: acc=0.825683, f1=0.440114, auc=0.954098, bac=0.410610, sens=0.410610, spec=0.958013
+epoch=98 iter=18 train: total=1.530960, prob=0.046836, batch=0.005612, channel=0.000740, cls=0.341827, gauss=0.153558, aux_recon=0.874429, aux_kl=0.016398
+epoch=98 test: acc=0.830408, f1=0.415329, auc=0.945587, bac=0.381655, sens=0.381655, spec=0.953045
+epoch=98 val: acc=0.825168, f1=0.385054, auc=0.954998, bac=0.357916, sens=0.357916, spec=0.951693
+epoch=99 iter=2 train: total=1.495852, prob=0.036099, batch=0.005163, channel=0.000697, cls=0.426699, gauss=0.160280, aux_recon=0.812399, aux_kl=0.016374
+epoch=99 test: acc=0.835054, f1=0.430064, auc=0.949039, bac=0.397895, sens=0.397895, spec=0.956937
+epoch=99 val: acc=0.832904, f1=0.400168, auc=0.955154, bac=0.381145, sens=0.381145, spec=0.956412
+epoch=99 iter=12 train: total=1.430851, prob=0.030411, batch=0.005100, channel=0.000614, cls=0.365580, gauss=0.151970, aux_recon=0.839320, aux_kl=0.015558
+epoch=99 test: acc=0.832473, f1=0.449687, auc=0.949128, bac=0.413225, sens=0.413225, spec=0.957118
+epoch=99 val: acc=0.835998, f1=0.418527, auc=0.956011, bac=0.395818, sens=0.395818, spec=0.957324
+epoch=99 iter=22 train: total=1.607249, prob=0.041926, batch=0.006138, channel=0.000736, cls=0.427739, gauss=0.153773, aux_recon=0.884194, aux_kl=0.015724
+epoch=99 test: acc=0.822406, f1=0.424392, auc=0.945459, bac=0.383837, sens=0.383837, spec=0.950271
+epoch=99 val: acc=0.826199, f1=0.404773, auc=0.953875, bac=0.372472, sens=0.372472, spec=0.950610
+epoch=100 iter=6 train: total=1.544780, prob=0.051012, batch=0.006493, channel=0.000650, cls=0.376728, gauss=0.162331, aux_recon=0.823687, aux_kl=0.016383
+epoch=100 test: acc=0.829375, f1=0.461179, auc=0.948031, bac=0.431915, sens=0.431915, spec=0.960102
+epoch=100 val: acc=0.826199, f1=0.405115, auc=0.953559, bac=0.390464, sens=0.390464, spec=0.958885
+epoch=100 iter=16 train: total=1.518594, prob=0.041304, batch=0.006332, channel=0.000740, cls=0.360147, gauss=0.151637, aux_recon=0.864549, aux_kl=0.014989
+epoch=100 test: acc=0.834538, f1=0.457211, auc=0.949141, bac=0.416240, sens=0.416240, spec=0.956971
+epoch=100 val: acc=0.831356, f1=0.400541, auc=0.956373, bac=0.377202, sens=0.377202, spec=0.955941
+epoch=100 iter=26 train: total=1.474535, prob=0.045020, batch=0.005161, channel=0.000685, cls=0.387847, gauss=0.163053, aux_recon=0.785253, aux_kl=0.015675
+epoch=100 test: acc=0.831182, f1=0.452921, auc=0.948238, bac=0.414158, sens=0.414158, spec=0.957807
+epoch=100 val: acc=0.828778, f1=0.401377, auc=0.956655, bac=0.381217, sens=0.381217, spec=0.957542
+best_test(epoch=69): acc=0.837636, f1=0.462754, auc=0.944908, bac=0.432188, sens=0.432188, spec=0.962548
+best_val(epoch=90): acc=0.838061, f1=0.454521, auc=0.954958, bac=0.417859, sens=0.417859, spec=0.959826

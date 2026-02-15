@@ -1,0 +1,8 @@
+Constructing ISIC2019LT Dataset with imbalance factor=500
+Training with 4 GPUS, waiting until all processes join before starting training
+Total # images:13556, labels:13556, number of classes
+Total # images:13556, labels:13556, number of classes
+Total # images:3874, labels:3874, number of classes
+Total # images:1939, labels:1939, number of classes
+Total # images:13556, labels:13556, number of classes
+Total # images:13556, labels:13556, number of classes

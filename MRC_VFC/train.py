@@ -33,6 +33,24 @@ def _get_state_dict(model):
     return model.state_dict()
 
 
+def _save_gaussian_prior_stats(path, gaussian_prior_loss_func):
+    if gaussian_prior_loss_func is None:
+        return False
+    means = gaussian_prior_loss_func.means
+    vars_ = gaussian_prior_loss_func.vars
+    if means is None or vars_ is None:
+        return False
+    payload = {
+        "means": means.detach().cpu(),
+        "vars": vars_.detach().cpu(),
+        "num_classes": int(gaussian_prior_loss_func.num_classes),
+        "var_floor": float(gaussian_prior_loss_func.var_floor),
+        "mode": str(gaussian_prior_loss_func.mode),
+    }
+    torch.save(payload, path)
+    return True
+
+
 def _forward_lite_eval(lite_vae, lite_classifier, img):
     mu, logvar, z, _ = lite_vae(img)
     if lite_classifier is None:
@@ -575,6 +593,13 @@ def trainEncoder(
             saveModelPath = os.path.join(args.checkpoints, 'epoch_{:d}_.pth'.format(epoch + 1))
             state_dict = _get_state_dict(model)
             torch.save(state_dict, saveModelPath)
+            if getattr(args, "save_stage1_gaussian_stats", False):
+                if getattr(args, "stage1_gaussian_save_every_epoch", False):
+                    gp_epoch_path = os.path.join(args.checkpoints, "gaussian_prior_epoch_{:d}_.pth".format(epoch + 1))
+                    _save_gaussian_prior_stats(gp_epoch_path, gaussian_prior_loss_func)
+                if getattr(args, "stage1_gaussian_save_latest", True):
+                    gp_latest_path = os.path.join(args.checkpoints, "gaussian_prior_latest.pth")
+                    _save_gaussian_prior_stats(gp_latest_path, gaussian_prior_loss_func)
 
             if (args.kd_enable or args.mix_enable) and args.kd_save_lite and lite_vae is not None:
                 if args.kd_save_every_epoch:

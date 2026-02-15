@@ -273,6 +273,32 @@ def _load_gaussian_stats(path):
     return stats
 
 
+def _load_stage1_gaussian_stats(path, expected_classes, expected_feat_dim):
+    state = torch.load(path, map_location="cpu")
+    means = state.get("means", None)
+    vars_ = state.get("vars", None)
+    if means is None or vars_ is None:
+        raise ValueError(f"Invalid stage1 gaussian stats file: {path}")
+    means = means.detach().cpu().numpy().astype(np.float32) if torch.is_tensor(means) else np.asarray(means, dtype=np.float32)
+    vars_ = vars_.detach().cpu().numpy().astype(np.float32) if torch.is_tensor(vars_) else np.asarray(vars_, dtype=np.float32)
+
+    if means.shape[0] != expected_classes:
+        raise ValueError(f"stage1 gaussian class mismatch: {means.shape[0]} != {expected_classes}")
+    if means.shape[1] != expected_feat_dim:
+        raise ValueError(f"stage1 gaussian dim mismatch: {means.shape[1]} != {expected_feat_dim}")
+    if vars_.shape != means.shape:
+        raise ValueError(f"stage1 gaussian vars shape mismatch: {vars_.shape} != {means.shape}")
+
+    var_floor = float(state.get("var_floor", 1e-4))
+    vars_ = np.maximum(vars_, var_floor)
+    return {
+        "covariance_type": "diag",
+        "means": means,
+        "cov_diag": vars_,
+        "var_floor": var_floor,
+    }
+
+
 def _write_local_log(log_f, msg):
     if log_f is None:
         return
@@ -355,6 +381,8 @@ if __name__ == "__main__":
     feature_source = str(getattr(args, "stage2_feature_source", "resnet")).lower()
     if feature_source not in ("resnet", "lite"):
         raise ValueError("stage2_feature_source must be one of: resnet | lite")
+    if feature_source == "lite":
+        print(f"[Stage2] feature_source=lite, backbone={args.backbone} is ignored.")
 
     source_teacher_run = args.teacher_run_name if args.teacher_run_name else args.run_name
     source_student_run = args.student_run_name if args.student_run_name else args.run_name
@@ -436,6 +464,16 @@ if __name__ == "__main__":
         n_classes,
         checkpoints_dir=args.checkpoints,
     )
+    use_stage1_gaussian_init = bool(getattr(args, "stage2_use_stage1_gaussian_init", False))
+    stage1_gaussian_path = _resolve_checkpoint_path(
+        getattr(args, "stage2_stage1_gaussian_path", ""),
+        args.checkpoints_root,
+        source_teacher_run,
+    )
+    if not stage1_gaussian_path:
+        auto_stage1_gaussian = os.path.join(args.checkpoints_root, source_teacher_run, "gaussian_prior_latest.pth")
+        if os.path.exists(auto_stage1_gaussian):
+            stage1_gaussian_path = auto_stage1_gaussian
 
     best_val_acc = -1.0
     best_test_acc = -1.0
@@ -465,6 +503,13 @@ if __name__ == "__main__":
         )
         if use_saved_gaussian and epoch == 0 and os.path.exists(stats_path):
             gaussian_stats = _load_gaussian_stats(stats_path)
+        elif use_stage1_gaussian_init and epoch == 0 and stage1_gaussian_path:
+            try:
+                gaussian_stats = _load_stage1_gaussian_stats(stage1_gaussian_path, n_classes, feature_dim)
+                _write_local_log(log_f, f"stage1 gaussian init loaded: {stage1_gaussian_path}")
+            except Exception as e:
+                _write_local_log(log_f, f"stage1 gaussian init skipped: {e}")
+                gaussian_stats = None
         elif need_refit_gaussian:
             gaussian_stats = fit_class_gaussians(
                 train_X,
@@ -472,6 +517,8 @@ if __name__ == "__main__":
                 n_classes,
                 covariance_type=getattr(args, "stage2_gaussian_covariance", "diag"),
                 var_floor=float(getattr(args, "stage2_gaussian_var_floor", 1e-4)),
+                full_min_samples=int(getattr(args, "stage2_gaussian_full_min_samples", 32)),
+                full_shrinkage=float(getattr(args, "stage2_gaussian_full_shrinkage", 0.1)),
             )
             if save_gaussian:
                 _save_gaussian_stats(stats_path, gaussian_stats)
@@ -494,6 +541,13 @@ if __name__ == "__main__":
                     min_size=int(getattr(args, "stage2_virtual_min_per_class", 0)),
                     max_size=int(getattr(args, "stage2_virtual_max_per_class", -1)),
                 )
+            max_virtual_ratio = float(getattr(args, "stage2_virtual_max_ratio", -1.0))
+            if max_virtual_ratio > 0:
+                max_total = int(len(train_y) * max_virtual_ratio)
+                cur_total = int(class_sizes.sum())
+                if cur_total > max_total and cur_total > 0:
+                    scale = max_total / float(cur_total)
+                    class_sizes = np.floor(class_sizes.astype(np.float64) * scale).astype(np.int64)
 
             virtual_X, virtual_y = sample_virtual_representations(gaussian_stats, class_sizes)
             merge_real = bool(getattr(args, "stage2_virtual_merge_real", True))

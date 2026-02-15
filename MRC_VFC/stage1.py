@@ -133,7 +133,19 @@ def main(gpu, args, wandb_logger):
         ).to(args.device)
         lite_classifier = Linear(args.lite_vae_latent_dim, num_class).to(args.device)
         if args.kd_feat_project:
-            kd_feat_proj = torch.nn.Linear(args.lite_vae_latent_dim, model.n_features).to(args.device)
+            if getattr(args, "kd_feat_project_mlp", False):
+                hidden_dim = int(getattr(args, "kd_feat_proj_hidden_dim", 0))
+                if hidden_dim <= 0:
+                    hidden_dim = max(args.lite_vae_latent_dim, model.n_features)
+                dropout = float(getattr(args, "kd_feat_proj_dropout", 0.0))
+                kd_feat_proj = torch.nn.Sequential(
+                    torch.nn.Linear(args.lite_vae_latent_dim, hidden_dim),
+                    torch.nn.ReLU(inplace=True),
+                    torch.nn.Dropout(p=dropout),
+                    torch.nn.Linear(hidden_dim, model.n_features),
+                ).to(args.device)
+            else:
+                kd_feat_proj = torch.nn.Linear(args.lite_vae_latent_dim, model.n_features).to(args.device)
 
         def _maybe_load(module, path, name):
             if module is None or not path:
@@ -181,15 +193,16 @@ def main(gpu, args, wandb_logger):
             kd_feat_proj = DataParallel(kd_feat_proj)
     else:
         if args.world_size > 1:
+            ddp_find_unused = bool(getattr(args, "ddp_find_unused_parameters", True))
             if any(p.requires_grad for p in model.parameters()):
                 model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-                model = DDP(model, device_ids=[gpu])
+                model = DDP(model, device_ids=[gpu], find_unused_parameters=ddp_find_unused)
             if lite_vae is not None:
-                lite_vae = DDP(lite_vae, device_ids=[gpu])
+                lite_vae = DDP(lite_vae, device_ids=[gpu], find_unused_parameters=ddp_find_unused)
             if lite_classifier is not None:
-                lite_classifier = DDP(lite_classifier, device_ids=[gpu])
+                lite_classifier = DDP(lite_classifier, device_ids=[gpu], find_unused_parameters=ddp_find_unused)
             if kd_feat_proj is not None:
-                kd_feat_proj = DDP(kd_feat_proj, device_ids=[gpu])
+                kd_feat_proj = DDP(kd_feat_proj, device_ids=[gpu], find_unused_parameters=ddp_find_unused)
 
     log_f = None
     if args.debug and args.log_file and rank == 0:

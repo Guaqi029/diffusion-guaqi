@@ -51,11 +51,20 @@ def _save_gaussian_prior_stats(path, gaussian_prior_loss_func):
     return True
 
 
-def _forward_lite_eval(lite_vae, lite_classifier, img):
+def _select_lite_feature(mu, z, mode="mu"):
+    if mode == "z":
+        return z
+    if mode == "mu":
+        return mu
+    raise ValueError(f"Unsupported lite feature mode: {mode}")
+
+
+def _forward_lite_eval(lite_vae, lite_classifier, img, feature_mode="mu"):
     mu, logvar, z, _ = lite_vae(img)
     if lite_classifier is None:
         raise ValueError("lite_classifier is required for lite eval")
-    logits = lite_classifier(z)
+    feat = _select_lite_feature(mu, z, feature_mode)
+    logits = lite_classifier(feat)
     return logits
 
 
@@ -83,6 +92,35 @@ def _compute_mix_alpha(epoch, start_epoch, end_epoch, alpha_start, alpha_end, sc
     return alpha_start + t * (alpha_end - alpha_start)
 
 
+def _batch_gram(features, norm="l2", center=False):
+    if center:
+        features = features - features.mean(dim=0, keepdim=True)
+    if norm == "l2":
+        features = F.normalize(features, dim=1)
+    gram = torch.matmul(features, features.t())
+    return gram / max(1, features.size(1))
+
+
+def _build_class_weights(
+    labels,
+    num_classes,
+    power=1.0,
+    min_weight=0.0,
+    max_weight=-1.0,
+    eps=1e-6,
+):
+    labels_t = torch.as_tensor(labels, dtype=torch.long)
+    counts = torch.bincount(labels_t, minlength=num_classes).float()
+    weights = torch.pow(counts + float(eps), -float(power))
+    weights = weights / weights.mean().clamp_min(float(eps))
+    if float(min_weight) > 0:
+        weights = torch.clamp(weights, min=float(min_weight))
+    if float(max_weight) > 0:
+        weights = torch.clamp(weights, max=float(max_weight))
+    weights = weights / weights.mean().clamp_min(float(eps))
+    return weights, counts
+
+
 def trainEncoder(
     model,
     ema_model,
@@ -106,7 +144,15 @@ def trainEncoder(
         mode=args.gaussian_prior_mode,
         fixed_var_value=args.gaussian_fixed_var_value,
     )
-    classification_loss_func = nn.CrossEntropyLoss()
+    lite_gaussian_prior_loss_func = None
+    if getattr(args, "save_stage1_lite_gaussian_stats", False):
+        lite_gaussian_prior_loss_func = GaussianPriorLoss(
+            num_classes=args.num_classes,
+            ema_momentum=args.gaussian_ema_momentum,
+            var_floor=float(getattr(args, "stage1_lite_gaussian_var_floor", args.gaussian_var_floor)),
+            mode="nll",
+            fixed_var_value=args.gaussian_fixed_var_value,
+        )
     if args.aux_vae_recon_type == "mse":
         recon_loss_func = nn.MSELoss()
     else:
@@ -119,11 +165,44 @@ def trainEncoder(
     cur_iters = 0
     model.train()
     train_loader, val_loader, test_loader = dataloader
+    class_weights = None
+    class_counts = None
+    if bool(getattr(args, "use_class_weight", False)):
+        labels = None
+        if hasattr(train_loader.dataset, "get_labels"):
+            labels = train_loader.dataset.get_labels()
+        elif hasattr(train_loader.dataset, "labels"):
+            labels = train_loader.dataset.labels
+        if labels is not None:
+            class_weights, class_counts = _build_class_weights(
+                labels,
+                args.num_classes,
+                power=float(getattr(args, "class_weight_power", 1.0)),
+                min_weight=float(getattr(args, "class_weight_min", 0.0)),
+                max_weight=float(getattr(args, "class_weight_max", -1.0)),
+                eps=float(getattr(args, "class_weight_eps", 1e-6)),
+            )
+            class_weights = class_weights.to(args.device)
+    classification_loss_func = nn.CrossEntropyLoss(weight=class_weights)
+    lite_feature_mode = getattr(args, "lite_student_feature_mode", "mu")
+    mix_feature_mode = getattr(args, "mix_lite_feature_mode", lite_feature_mode)
     cur_lr = args.lr
     best_test = None
     best_val = None
     best_test_epoch = -1
     best_val_epoch = -1
+    if args.rank == 0:
+        if class_weights is not None and class_counts is not None:
+            _write_local_log(
+                log_f,
+                "class_weight enabled: counts={}, weights={}".format(
+                    class_counts.tolist(),
+                    [round(float(x), 6) for x in class_weights.detach().cpu().tolist()],
+                ),
+            )
+        else:
+            _write_local_log(log_f, "class_weight disabled")
+        _write_local_log(log_f, f"lite_feature_mode={lite_feature_mode}, mix_feature_mode={mix_feature_mode}")
     def _epoch_val_lite(lite_vae, lite_classifier, data_loader):
         if lite_vae is None or lite_classifier is None:
             return None
@@ -136,7 +215,7 @@ def trainEncoder(
         with torch.no_grad():
             for image, label in data_loader:
                 image, label = image.cuda(), label.cuda()
-                logits = _forward_lite_eval(lite_vae, lite_classifier, image)
+                logits = _forward_lite_eval(lite_vae, lite_classifier, image, feature_mode=lite_feature_mode)
                 logits = F.softmax(logits, dim=1)
                 groundTruth = torch.cat((groundTruth, label))
                 activations = torch.cat((activations, logits))
@@ -160,8 +239,8 @@ def trainEncoder(
             for image, label in data_loader:
                 image, label = image.cuda(), label.cuda()
                 feat_t = encoder(image)
-                _, _, z, _ = lite_vae(image)
-                feat_s = z
+                mu, _, z, _ = lite_vae(image)
+                feat_s = _select_lite_feature(mu, z, mix_feature_mode)
                 if kd_feat_proj is not None:
                     feat_s = kd_feat_proj(feat_s)
                 elif feat_s.size(1) != feat_t.size(1):
@@ -272,7 +351,7 @@ def trainEncoder(
                 lite_mu, lite_logvar, lite_z, lite_recon = lite_vae(img)
 
             if args.mix_enable and lite_z is not None:
-                lite_feat = lite_z
+                lite_feat = _select_lite_feature(lite_mu, lite_z, mix_feature_mode)
                 if kd_feat_proj is not None:
                     lite_feat = kd_feat_proj(lite_feat)
                 elif lite_feat.size(1) != activations.size(1):
@@ -337,13 +416,18 @@ def trainEncoder(
             # KD + LiteVAE student losses
             kd_logit_loss = torch.tensor(0.0, device=activations.device)
             kd_feat_loss = torch.tensor(0.0, device=activations.device)
+            kd_struct_loss = torch.tensor(0.0, device=activations.device)
             lite_recon_loss = torch.tensor(0.0, device=activations.device)
             lite_kl_loss = torch.tensor(0.0, device=activations.device)
             lite_ce_loss = torch.tensor(0.0, device=activations.device)
             lite_acc = torch.tensor(0.0, device=activations.device)
 
             if args.kd_enable and lite_vae is not None and lite_classifier is not None and lite_z is not None:
-                lite_logits = lite_classifier(lite_z)
+                lite_student_feat = _select_lite_feature(lite_mu, lite_z, lite_feature_mode)
+                if lite_gaussian_prior_loss_func is not None:
+                    with torch.no_grad():
+                        lite_gaussian_prior_loss_func(lite_student_feat.detach(), label)
+                lite_logits = lite_classifier(lite_student_feat)
 
                 if args.kd_logit_weight > 0:
                     t = args.kd_temperature
@@ -354,17 +438,26 @@ def trainEncoder(
                         reduction="batchmean",
                     ) * (t * t)
 
-                if args.kd_feat_weight > 0:
-                    feat_s = lite_z
+                if args.kd_feat_weight > 0 or getattr(args, "kd_struct_weight", 0.0) > 0:
+                    feat_s = lite_student_feat
                     feat_t = activations.detach()
                     if kd_feat_proj is not None:
                         feat_s = kd_feat_proj(feat_s)
                     elif feat_s.size(1) != feat_t.size(1):
                         raise ValueError("kd_feat_project is False but feature dims do not match")
-                    if args.kd_feat_norm == "l2":
-                        feat_s = F.normalize(feat_s, dim=1)
-                        feat_t = F.normalize(feat_t, dim=1)
-                    kd_feat_loss = F.mse_loss(feat_s, feat_t)
+                    if args.kd_feat_weight > 0:
+                        feat_s_mse = feat_s
+                        feat_t_mse = feat_t
+                        if args.kd_feat_norm == "l2":
+                            feat_s_mse = F.normalize(feat_s_mse, dim=1)
+                            feat_t_mse = F.normalize(feat_t_mse, dim=1)
+                        kd_feat_loss = F.mse_loss(feat_s_mse, feat_t_mse)
+                    if getattr(args, "kd_struct_weight", 0.0) > 0:
+                        struct_norm = getattr(args, "kd_struct_norm", "l2")
+                        struct_center = bool(getattr(args, "kd_struct_center", False))
+                        gram_s = _batch_gram(feat_s, norm=struct_norm, center=struct_center)
+                        gram_t = _batch_gram(feat_t, norm=struct_norm, center=struct_center)
+                        kd_struct_loss = F.mse_loss(gram_s, gram_t)
 
                 if args.lite_vae_recon_weight > 0:
                     lite_recon_loss = lite_recon_loss_func(lite_recon, img)
@@ -382,6 +475,7 @@ def trainEncoder(
                 loss = loss + base_loss
             loss = loss + kd_logit_loss * args.kd_logit_weight
             loss = loss + kd_feat_loss * args.kd_feat_weight
+            loss = loss + kd_struct_loss * getattr(args, "kd_struct_weight", 0.0)
             loss = loss + lite_recon_loss * args.lite_vae_recon_weight
             loss = loss + lite_kl_loss * args.lite_vae_kl_weight
             loss = loss + lite_ce_loss * args.lite_student_ce_weight
@@ -414,7 +508,10 @@ def trainEncoder(
                 if cur_iters % 500 == 1 and logger is not None:
                     logger.log({'Strong augmentation': [wandb.Image(item) for item in img.permute(0,2,3,1).detach().cpu().numpy()[:5]]})
                     logger.log({'Weak augmentation': [wandb.Image(item) for item in ema_img.permute(0,2,3,1).detach().cpu().numpy()[:5]]})
-                if cur_iters % 10 == 0:
+                eval_every_epochs = max(1, int(getattr(args, "eval_every_epochs", 5)))
+                is_last_iter = (i + 1) == len(train_loader)
+                should_eval = is_last_iter and (((epoch + 1) % eval_every_epochs == 0) or ((epoch + 1) == args.epochs))
+                if should_eval:
                     cur_lr = optimizer.param_groups[0]["lr"]
                     # evaluate on test and val set
                     val_acc, val_f1, val_auc, val_bac, val_sens, val_spec = epochVal(model, val_loader)
@@ -448,6 +545,7 @@ def trainEncoder(
                                                  'aux kl loss': kl_loss.item(),
                                                  'kd logit loss': kd_logit_loss.item(),
                                                  'kd feat loss': kd_feat_loss.item(),
+                                                 'kd struct loss': kd_struct_loss.item(),
                                                  'lite recon loss': lite_recon_loss.item(),
                                                  'lite kl loss': lite_kl_loss.item(),
                                                  'lite ce loss': lite_ce_loss.item(),
@@ -496,7 +594,7 @@ def trainEncoder(
                     _write_local_log(
                         log_f,
                         "epoch={:d} iter={:d} train: total={:.6f}, prob={:.6f}, batch={:.6f}, channel={:.6f}, cls={:.6f}, "
-                        "gauss={:.6f}, aux_recon={:.6f}, aux_kl={:.6f}, kd_logit={:.6f}, kd_feat={:.6f}, "
+                        "gauss={:.6f}, aux_recon={:.6f}, aux_kl={:.6f}, kd_logit={:.6f}, kd_feat={:.6f}, kd_struct={:.6f}, "
                         "lite_recon={:.6f}, lite_kl={:.6f}, lite_ce={:.6f}, lite_acc={:.6f}, mix_alpha={}".format(
                             epoch + 1,
                             i + 1,
@@ -510,6 +608,7 @@ def trainEncoder(
                             kl_loss.item(),
                             kd_logit_loss.item(),
                             kd_feat_loss.item(),
+                            kd_struct_loss.item(),
                             lite_recon_loss.item(),
                             lite_kl_loss.item(),
                             lite_ce_loss.item(),
@@ -600,6 +699,13 @@ def trainEncoder(
                 if getattr(args, "stage1_gaussian_save_latest", True):
                     gp_latest_path = os.path.join(args.checkpoints, "gaussian_prior_latest.pth")
                     _save_gaussian_prior_stats(gp_latest_path, gaussian_prior_loss_func)
+            if getattr(args, "save_stage1_lite_gaussian_stats", False):
+                if getattr(args, "stage1_lite_gaussian_save_every_epoch", False):
+                    lgp_epoch_path = os.path.join(args.checkpoints, "lite_gaussian_prior_epoch_{:d}_.pth".format(epoch + 1))
+                    _save_gaussian_prior_stats(lgp_epoch_path, lite_gaussian_prior_loss_func)
+                if getattr(args, "stage1_lite_gaussian_save_latest", True):
+                    lgp_latest_path = os.path.join(args.checkpoints, "lite_gaussian_prior_latest.pth")
+                    _save_gaussian_prior_stats(lgp_latest_path, lite_gaussian_prior_loss_func)
 
             if (args.kd_enable or args.mix_enable) and args.kd_save_lite and lite_vae is not None:
                 if args.kd_save_every_epoch:

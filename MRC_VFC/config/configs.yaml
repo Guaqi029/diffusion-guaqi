@@ -3,6 +3,7 @@ nodes: 1
 gpus: 4
 nr: 0
 dataparallel: 0
+ddp_find_unused_parameters: True
 workers: 8
 
 # Paths
@@ -41,6 +42,12 @@ batch_loss_weight: 10
 channel_loss_weight: 10
 classification_loss_weight: 1
 probability_loss_weight: 5
+eval_every_epochs: 5
+use_class_weight: True
+class_weight_power: 1.0
+class_weight_min: 0.2
+class_weight_max: 5.0
+class_weight_eps: 0.000001
 
 # Stage1 auxiliary VAE (kept optional for ablation)
 use_aux_vae: False
@@ -63,6 +70,12 @@ kd_logit_weight: 0.2
 kd_feat_weight: 0.2
 kd_feat_norm: "l2"  # l2 | none
 kd_feat_project: True
+kd_feat_project_mlp: True
+kd_feat_proj_hidden_dim: 512
+kd_feat_proj_dropout: 0.1
+kd_struct_weight: 0.5
+kd_struct_norm: "l2"  # l2 | none
+kd_struct_center: False
 kd_save_lite: True
 kd_save_every_epoch: True
 kd_save_latest: True
@@ -80,12 +93,14 @@ mix_eval_enable: False
 
 lite_vae_variant: "full"  # full | simple
 lite_vae_dwt_levels: 3
-lite_vae_base_channels: 64
+lite_vae_base_channels: 128
 lite_vae_latent_dim: 256
 lite_vae_recon_weight: 0.05
 lite_vae_kl_weight: 0.0
 lite_vae_recon_type: "l1"  # l1 or mse
 lite_student_ce_weight: 1.0
+lite_student_feature_mode: "mu"  # mu | z
+mix_lite_feature_mode: "mu"  # mu | z
 # lite_vae_resume_path: "litevae_epoch_40_.pth"
 # lite_classifier_resume_path: "lite_classifier_epoch_40_.pth"
 # kd_feat_proj_resume_path: "kd_feat_proj_epoch_40_.pth"
@@ -108,6 +123,10 @@ gaussian_fixed_var_value: 1.0
 save_stage1_gaussian_stats: True
 stage1_gaussian_save_every_epoch: False
 stage1_gaussian_save_latest: True
+save_stage1_lite_gaussian_stats: True
+stage1_lite_gaussian_var_floor: 0.01
+stage1_lite_gaussian_save_every_epoch: False
+stage1_lite_gaussian_save_latest: True
 
 # Stage2 options
 stage2_batch_size: 256
@@ -115,6 +134,8 @@ stage2_epochs: 500
 classifier_lr: 0.001
 backbone_lr: 0.000001
 virtual_size: 5000
+stage2_use_class_weight: True
+stage2_class_weight_source: "real"  # real | train_for_cls
 stage2_feature_source: "lite"  # resnet | lite
 stage2_lite_feature_mode: "mu"  # mu | z
 stage2_backbone_resume_path: ""
@@ -142,3 +163,5 @@ stage2_gaussian_stats_path: ""  # relative to checkpoints/run_name unless absolu
 stage2_recompute_gaussian_each_epoch: True
 stage2_use_stage1_gaussian_init: False
 stage2_stage1_gaussian_path: ""
+stage2_prioritize_stage1_gaussian: True
+stage2_refit_after_stage1_gaussian: False

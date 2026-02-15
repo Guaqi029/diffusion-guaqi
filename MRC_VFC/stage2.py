@@ -311,6 +311,26 @@ def _log_metrics_local(log_f, prefix, metrics):
     _write_local_log(log_f, f"{prefix}: " + ", ".join(parts))
 
 
+def _build_class_weights_np(
+    labels,
+    num_classes,
+    power=1.0,
+    min_weight=0.0,
+    max_weight=-1.0,
+    eps=1e-6,
+):
+    labels = np.asarray(labels, dtype=np.int64)
+    counts = np.bincount(labels, minlength=num_classes).astype(np.float32)
+    weights = np.power(counts + float(eps), -float(power)).astype(np.float32)
+    weights = weights / max(float(weights.mean()), float(eps))
+    if float(min_weight) > 0:
+        weights = np.maximum(weights, float(min_weight))
+    if float(max_weight) > 0:
+        weights = np.minimum(weights, float(max_weight))
+    weights = weights / max(float(weights.mean()), float(eps))
+    return weights.astype(np.float32), counts.astype(np.int64)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     yaml_config = yaml_config_hook("./config/configs.yaml")
@@ -444,9 +464,18 @@ if __name__ == "__main__":
     classifier_optimizer = torch.optim.SGD(classifier_model.parameters(),
                                            lr=args.classifier_lr, momentum=0.9, weight_decay=1e-4)
     classifier_criterion = torch.nn.CrossEntropyLoss()
+    stage2_use_class_weight = bool(getattr(args, "stage2_use_class_weight", getattr(args, "use_class_weight", False)))
+    stage2_class_weight_source = str(getattr(args, "stage2_class_weight_source", "real"))
+    if stage2_class_weight_source not in {"real", "train_for_cls"}:
+        raise ValueError("stage2_class_weight_source must be one of: real | train_for_cls")
+    last_class_weight_signature = None
 
     _write_local_log(log_f, f"feature_source={feature_source}, lite_feature_mode={lite_feature_mode}")
     _write_local_log(log_f, f"loaded_feature_ckpt={loaded_feature_ckpt}")
+    _write_local_log(
+        log_f,
+        f"stage2_use_class_weight={stage2_use_class_weight}, stage2_class_weight_source={stage2_class_weight_source}",
+    )
 
     stats_path = _resolve_stats_path(
         getattr(args, "stage2_gaussian_stats_path", ""),
@@ -457,23 +486,44 @@ if __name__ == "__main__":
     save_gaussian = bool(getattr(args, "stage2_save_gaussian_stats", True))
     recompute_gaussian_each_epoch = bool(getattr(args, "stage2_recompute_gaussian_each_epoch", False))
     recompute_features_each_epoch = bool(getattr(args, "stage2_recompute_features_each_epoch", True))
+    prioritize_stage1_gaussian = bool(getattr(args, "stage2_prioritize_stage1_gaussian", True))
+    refit_after_stage1_gaussian = bool(getattr(args, "stage2_refit_after_stage1_gaussian", False))
 
     gaussian_stats = None
+    gaussian_source = "none"
+    stage1_gaussian_loaded = False
     class_sizes_override = _load_virtual_class_sizes(
         getattr(args, "stage2_virtual_counts_path", ""),
         n_classes,
         checkpoints_dir=args.checkpoints,
     )
     use_stage1_gaussian_init = bool(getattr(args, "stage2_use_stage1_gaussian_init", False))
-    stage1_gaussian_path = _resolve_checkpoint_path(
-        getattr(args, "stage2_stage1_gaussian_path", ""),
-        args.checkpoints_root,
-        source_teacher_run,
-    )
+    stage1_gaussian_path = ""
+    user_stage1_gaussian = getattr(args, "stage2_stage1_gaussian_path", "")
+    if user_stage1_gaussian:
+        stage1_gaussian_path = _resolve_checkpoint_path(
+            user_stage1_gaussian,
+            args.checkpoints_root,
+            source_student_run if feature_source == "lite" else source_teacher_run,
+        )
+        if not stage1_gaussian_path:
+            stage1_gaussian_path = _resolve_checkpoint_path(
+                user_stage1_gaussian,
+                args.checkpoints_root,
+                source_teacher_run,
+            )
     if not stage1_gaussian_path:
-        auto_stage1_gaussian = os.path.join(args.checkpoints_root, source_teacher_run, "gaussian_prior_latest.pth")
-        if os.path.exists(auto_stage1_gaussian):
-            stage1_gaussian_path = auto_stage1_gaussian
+        auto_candidates = []
+        if feature_source == "lite":
+            auto_candidates.extend([
+                os.path.join(args.checkpoints_root, source_student_run, "lite_gaussian_prior_latest.pth"),
+                os.path.join(args.checkpoints_root, source_student_run, "gaussian_prior_latest.pth"),
+            ])
+        auto_candidates.append(os.path.join(args.checkpoints_root, source_teacher_run, "gaussian_prior_latest.pth"))
+        for cand in auto_candidates:
+            if os.path.exists(cand):
+                stage1_gaussian_path = cand
+                break
 
     best_val_acc = -1.0
     best_test_acc = -1.0
@@ -501,16 +551,34 @@ if __name__ == "__main__":
             or recompute_gaussian_each_epoch
             or need_refresh_features
         )
-        if use_saved_gaussian and epoch == 0 and os.path.exists(stats_path):
-            gaussian_stats = _load_gaussian_stats(stats_path)
-        elif use_stage1_gaussian_init and epoch == 0 and stage1_gaussian_path:
-            try:
-                gaussian_stats = _load_stage1_gaussian_stats(stage1_gaussian_path, n_classes, feature_dim)
-                _write_local_log(log_f, f"stage1 gaussian init loaded: {stage1_gaussian_path}")
-            except Exception as e:
-                _write_local_log(log_f, f"stage1 gaussian init skipped: {e}")
-                gaussian_stats = None
-        elif need_refit_gaussian:
+        if epoch == 0 and gaussian_stats is None:
+            if prioritize_stage1_gaussian and stage1_gaussian_path:
+                try:
+                    gaussian_stats = _load_stage1_gaussian_stats(stage1_gaussian_path, n_classes, feature_dim)
+                    stage1_gaussian_loaded = True
+                    gaussian_source = "stage1"
+                    _write_local_log(log_f, f"gaussian source=stage1, loaded: {stage1_gaussian_path}")
+                except Exception as e:
+                    _write_local_log(log_f, f"stage1 gaussian priority skipped: {e}")
+                    gaussian_stats = None
+
+            if gaussian_stats is None and use_saved_gaussian and os.path.exists(stats_path):
+                gaussian_stats = _load_gaussian_stats(stats_path)
+                gaussian_source = "saved"
+                _write_local_log(log_f, f"gaussian source=saved, loaded: {stats_path}")
+
+            if gaussian_stats is None and use_stage1_gaussian_init and stage1_gaussian_path:
+                try:
+                    gaussian_stats = _load_stage1_gaussian_stats(stage1_gaussian_path, n_classes, feature_dim)
+                    stage1_gaussian_loaded = True
+                    gaussian_source = "stage1"
+                    _write_local_log(log_f, f"stage1 gaussian init loaded: {stage1_gaussian_path}")
+                except Exception as e:
+                    _write_local_log(log_f, f"stage1 gaussian init skipped: {e}")
+                    gaussian_stats = None
+
+        allow_refit = not stage1_gaussian_loaded or refit_after_stage1_gaussian
+        if need_refit_gaussian and allow_refit:
             gaussian_stats = fit_class_gaussians(
                 train_X,
                 train_y,
@@ -520,6 +588,7 @@ if __name__ == "__main__":
                 full_min_samples=int(getattr(args, "stage2_gaussian_full_min_samples", 32)),
                 full_shrinkage=float(getattr(args, "stage2_gaussian_full_shrinkage", 0.1)),
             )
+            gaussian_source = "fit"
             if save_gaussian:
                 _save_gaussian_stats(stats_path, gaussian_stats)
 
@@ -562,17 +631,49 @@ if __name__ == "__main__":
                 "virtual_total": int(len(virtual_X)),
                 "train_total": int(len(train_X_for_cls)),
                 "merge_real": int(merge_real),
+                "gaussian_source": gaussian_source,
             })
         else:
             _log_metrics_local(log_f, f"epoch {epoch} virtual", {
                 "virtual_total": 0,
                 "train_total": int(len(train_X_for_cls)),
                 "merge_real": 1,
+                "gaussian_source": gaussian_source,
             })
 
         arr_train_loader, arr_test_loader, arr_val_loader = create_data_loaders_from_arrays(
             train_X_for_cls, train_y_for_cls, test_X, test_y, val_X, val_y, args.stage2_batch_size
         )
+
+        if stage2_use_class_weight:
+            labels_for_weight = train_y if stage2_class_weight_source == "real" else train_y_for_cls
+            class_weights_np, class_counts_np = _build_class_weights_np(
+                labels_for_weight,
+                n_classes,
+                power=float(getattr(args, "class_weight_power", 1.0)),
+                min_weight=float(getattr(args, "class_weight_min", 0.0)),
+                max_weight=float(getattr(args, "class_weight_max", -1.0)),
+                eps=float(getattr(args, "class_weight_eps", 1e-6)),
+            )
+            class_weights = torch.tensor(class_weights_np, dtype=torch.float32, device=args.device)
+            classifier_criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
+            signature = (
+                tuple(class_counts_np.tolist()),
+                tuple(np.round(class_weights_np, 6).tolist()),
+                stage2_class_weight_source,
+            )
+            if signature != last_class_weight_signature:
+                _write_local_log(
+                    log_f,
+                    "stage2 class_weight: source={}, counts={}, weights={}".format(
+                        stage2_class_weight_source,
+                        class_counts_np.tolist(),
+                        [round(float(x), 6) for x in class_weights_np.tolist()],
+                    ),
+                )
+                last_class_weight_signature = signature
+        else:
+            classifier_criterion = torch.nn.CrossEntropyLoss()
 
         # m-step: train classifier on real+virtual feature set
         loss_epoch, acc_epoch = m_step(

@@ -101,6 +101,19 @@ def _batch_gram(features, norm="l2", center=False):
     return gram / max(1, features.size(1))
 
 
+def _linear_cka_similarity(x, y, center=True, eps=1e-8):
+    if center:
+        x = x - x.mean(dim=0, keepdim=True)
+        y = y - y.mean(dim=0, keepdim=True)
+    xty = torch.matmul(x.t(), y)
+    xtx = torch.matmul(x.t(), x)
+    yty = torch.matmul(y.t(), y)
+    hsic = torch.norm(xty, p="fro").pow(2)
+    norm_x = torch.norm(xtx, p="fro")
+    norm_y = torch.norm(yty, p="fro")
+    return hsic / (norm_x * norm_y + float(eps))
+
+
 def _build_class_weights(
     labels,
     num_classes,
@@ -131,6 +144,8 @@ def trainEncoder(
     aux_vae=None,
     lite_vae=None,
     lite_classifier=None,
+    lite_vae_teacher=None,
+    lite_classifier_teacher=None,
     kd_feat_proj=None,
     log_f=None,
 ):
@@ -191,6 +206,17 @@ def trainEncoder(
     best_val = None
     best_test_epoch = -1
     best_val_epoch = -1
+    kd_feat_start_epoch = int(getattr(args, "kd_feat_start_epoch", 0))
+    kd_struct_start_epoch = int(getattr(args, "kd_struct_start_epoch", 0))
+    kd_struct_type = str(getattr(args, "kd_struct_type", "gram")).lower()
+    kd_teacher_source = str(getattr(args, "kd_teacher_source", "resnet")).lower()
+    kd_lite_teacher_use_weak_aug = bool(getattr(args, "kd_lite_teacher_use_weak_aug", True))
+    kd_lite_teacher_use_ema = bool(getattr(args, "kd_lite_teacher_use_ema", True))
+    kd_lite_teacher_ema_decay = float(getattr(args, "kd_lite_teacher_ema_decay", args.ema_decay))
+    if kd_teacher_source not in ("resnet", "lite"):
+        raise ValueError("kd_teacher_source must be one of: resnet | lite")
+    if kd_struct_type not in ("gram", "cka"):
+        raise ValueError("kd_struct_type must be one of: gram | cka")
     if args.rank == 0:
         if class_weights is not None and class_counts is not None:
             _write_local_log(
@@ -202,6 +228,14 @@ def trainEncoder(
             )
         else:
             _write_local_log(log_f, "class_weight disabled")
+        _write_local_log(
+            log_f,
+            f"kd schedule: feat_start={kd_feat_start_epoch}, struct_start={kd_struct_start_epoch}, struct_type={kd_struct_type}",
+        )
+        _write_local_log(
+            log_f,
+            f"kd_teacher_source={kd_teacher_source}, kd_lite_teacher_use_weak_aug={kd_lite_teacher_use_weak_aug}, kd_lite_teacher_use_ema={kd_lite_teacher_use_ema}",
+        )
         _write_local_log(log_f, f"lite_feature_mode={lite_feature_mode}, mix_feature_mode={mix_feature_mode}")
     def _epoch_val_lite(lite_vae, lite_classifier, data_loader):
         if lite_vae is None or lite_classifier is None:
@@ -343,12 +377,30 @@ def trainEncoder(
                 activations, outputs = model(img)
 
             teacher_outputs = outputs
+            teacher_feat_for_kd = activations
             mix_alpha = None
             lite_mu = lite_logvar = lite_z = lite_recon = None
             lite_feat = None
 
             if (args.mix_enable or args.kd_enable) and lite_vae is not None:
                 lite_mu, lite_logvar, lite_z, lite_recon = lite_vae(img)
+
+            if (
+                args.kd_enable
+                and kd_teacher_source == "lite"
+                and lite_vae is not None
+                and lite_classifier is not None
+            ):
+                teacher_input = ema_img if kd_lite_teacher_use_weak_aug else img
+                with torch.no_grad():
+                    if lite_vae_teacher is not None and lite_classifier_teacher is not None:
+                        t_mu, _, t_z, _ = lite_vae_teacher(teacher_input)
+                        teacher_feat_for_kd = _select_lite_feature(t_mu, t_z, lite_feature_mode)
+                        teacher_outputs = lite_classifier_teacher(teacher_feat_for_kd)
+                    else:
+                        t_mu, _, t_z, _ = lite_vae(teacher_input)
+                        teacher_feat_for_kd = _select_lite_feature(t_mu, t_z, lite_feature_mode)
+                        teacher_outputs = lite_classifier(teacher_feat_for_kd)
 
             if args.mix_enable and lite_z is not None:
                 lite_feat = _select_lite_feature(lite_mu, lite_z, mix_feature_mode)
@@ -438,26 +490,33 @@ def trainEncoder(
                         reduction="batchmean",
                     ) * (t * t)
 
-                if args.kd_feat_weight > 0 or getattr(args, "kd_struct_weight", 0.0) > 0:
+                feat_active = args.kd_feat_weight > 0 and epoch >= kd_feat_start_epoch
+                struct_active = getattr(args, "kd_struct_weight", 0.0) > 0 and epoch >= kd_struct_start_epoch
+                if feat_active or struct_active:
                     feat_s = lite_student_feat
-                    feat_t = activations.detach()
-                    if kd_feat_proj is not None:
+                    feat_t = teacher_feat_for_kd.detach()
+                    need_proj = (kd_teacher_source == "resnet")
+                    if need_proj and kd_feat_proj is not None:
                         feat_s = kd_feat_proj(feat_s)
                     elif feat_s.size(1) != feat_t.size(1):
                         raise ValueError("kd_feat_project is False but feature dims do not match")
-                    if args.kd_feat_weight > 0:
+                    if feat_active:
                         feat_s_mse = feat_s
                         feat_t_mse = feat_t
                         if args.kd_feat_norm == "l2":
                             feat_s_mse = F.normalize(feat_s_mse, dim=1)
                             feat_t_mse = F.normalize(feat_t_mse, dim=1)
                         kd_feat_loss = F.mse_loss(feat_s_mse, feat_t_mse)
-                    if getattr(args, "kd_struct_weight", 0.0) > 0:
+                    if struct_active:
                         struct_norm = getattr(args, "kd_struct_norm", "l2")
                         struct_center = bool(getattr(args, "kd_struct_center", False))
-                        gram_s = _batch_gram(feat_s, norm=struct_norm, center=struct_center)
-                        gram_t = _batch_gram(feat_t, norm=struct_norm, center=struct_center)
-                        kd_struct_loss = F.mse_loss(gram_s, gram_t)
+                        if kd_struct_type == "cka":
+                            cka_sim = _linear_cka_similarity(feat_s, feat_t, center=struct_center)
+                            kd_struct_loss = 1.0 - cka_sim
+                        else:
+                            gram_s = _batch_gram(feat_s, norm=struct_norm, center=struct_center)
+                            gram_t = _batch_gram(feat_t, norm=struct_norm, center=struct_center)
+                            kd_struct_loss = F.mse_loss(gram_s, gram_t)
 
                 if args.lite_vae_recon_weight > 0:
                     lite_recon_loss = lite_recon_loss_func(lite_recon, img)
@@ -497,6 +556,17 @@ def trainEncoder(
             # update ema model
             if not kd_only:
                 update_ema_variables(model, ema_model, args.ema_decay, cur_iters)
+            if (
+                args.kd_enable
+                and kd_teacher_source == "lite"
+                and kd_lite_teacher_use_ema
+                and lite_vae_teacher is not None
+                and lite_classifier_teacher is not None
+                and lite_vae is not None
+                and lite_classifier is not None
+            ):
+                update_ema_variables(lite_vae, lite_vae_teacher, kd_lite_teacher_ema_decay, cur_iters)
+                update_ema_variables(lite_classifier, lite_classifier_teacher, kd_lite_teacher_ema_decay, cur_iters)
 
             if dist.is_available() and dist.is_initialized():
                 loss = loss.data.clone()
@@ -508,8 +578,37 @@ def trainEncoder(
                 if cur_iters % 500 == 1 and logger is not None:
                     logger.log({'Strong augmentation': [wandb.Image(item) for item in img.permute(0,2,3,1).detach().cpu().numpy()[:5]]})
                     logger.log({'Weak augmentation': [wandb.Image(item) for item in ema_img.permute(0,2,3,1).detach().cpu().numpy()[:5]]})
-                eval_every_epochs = max(1, int(getattr(args, "eval_every_epochs", 5)))
                 is_last_iter = (i + 1) == len(train_loader)
+                train_log_every_iters = max(1, int(getattr(args, "train_log_every_iters", 10)))
+                console_log_every_iters = max(1, int(getattr(args, "console_log_every_iters", 10)))
+                should_log_train = ((i + 1) % train_log_every_iters == 0) or is_last_iter
+                if should_log_train:
+                    _write_local_log(
+                        log_f,
+                        "epoch={:d} iter={:d} train: total={:.6f}, prob={:.6f}, batch={:.6f}, channel={:.6f}, cls={:.6f}, "
+                        "gauss={:.6f}, aux_recon={:.6f}, aux_kl={:.6f}, kd_logit={:.6f}, kd_feat={:.6f}, kd_struct={:.6f}, "
+                        "lite_recon={:.6f}, lite_kl={:.6f}, lite_ce={:.6f}, lite_acc={:.6f}, mix_alpha={}".format(
+                            epoch + 1,
+                            i + 1,
+                            rank0_loss,
+                            probability_loss.item(),
+                            batch_sim_loss.item(),
+                            channel_sim_loss.item(),
+                            classification_loss.item(),
+                            gaussian_prior_loss.item(),
+                            recon_loss.item(),
+                            kl_loss.item(),
+                            kd_logit_loss.item(),
+                            kd_feat_loss.item(),
+                            kd_struct_loss.item(),
+                            lite_recon_loss.item(),
+                            lite_kl_loss.item(),
+                            lite_ce_loss.item(),
+                            lite_acc.item(),
+                            "None" if mix_alpha is None else float(mix_alpha),
+                        ),
+                    )
+                eval_every_epochs = max(1, int(getattr(args, "eval_every_epochs", 5)))
                 should_eval = is_last_iter and (((epoch + 1) % eval_every_epochs == 0) or ((epoch + 1) == args.epochs))
                 if should_eval:
                     cur_lr = optimizer.param_groups[0]["lr"]
@@ -593,31 +692,6 @@ def trainEncoder(
                                         'mix_alpha': float(alpha_eval)})
                     _write_local_log(
                         log_f,
-                        "epoch={:d} iter={:d} train: total={:.6f}, prob={:.6f}, batch={:.6f}, channel={:.6f}, cls={:.6f}, "
-                        "gauss={:.6f}, aux_recon={:.6f}, aux_kl={:.6f}, kd_logit={:.6f}, kd_feat={:.6f}, kd_struct={:.6f}, "
-                        "lite_recon={:.6f}, lite_kl={:.6f}, lite_ce={:.6f}, lite_acc={:.6f}, mix_alpha={}".format(
-                            epoch + 1,
-                            i + 1,
-                            rank0_loss,
-                            probability_loss.item(),
-                            batch_sim_loss.item(),
-                            channel_sim_loss.item(),
-                            classification_loss.item(),
-                            gaussian_prior_loss.item(),
-                            recon_loss.item(),
-                            kl_loss.item(),
-                            kd_logit_loss.item(),
-                            kd_feat_loss.item(),
-                            kd_struct_loss.item(),
-                            lite_recon_loss.item(),
-                            lite_kl_loss.item(),
-                            lite_ce_loss.item(),
-                            lite_acc.item(),
-                            "None" if mix_alpha is None else float(mix_alpha),
-                        ),
-                    )
-                    _write_local_log(
-                        log_f,
                         "epoch={:d} test: acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
                             epoch + 1,
                             test_acc, test_f1, test_auc, test_bac, test_sens, test_spec
@@ -664,6 +738,48 @@ def trainEncoder(
                                 mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec
                             ),
                         )
+                    print(
+                        "\nepoch={:d} test: acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
+                            epoch + 1,
+                            test_acc, test_f1, test_auc, test_bac, test_sens, test_spec
+                        )
+                    )
+                    print(
+                        "epoch={:d} val: acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
+                            epoch + 1,
+                            val_acc, val_f1, val_auc, val_bac, val_sens, val_spec
+                        )
+                    )
+                    if lite_metrics is not None:
+                        (lval_acc, lval_f1, lval_auc, lval_bac, lval_sens, lval_spec), (ltest_acc, ltest_f1, ltest_auc, ltest_bac, ltest_sens, ltest_spec) = lite_metrics
+                        print(
+                            "epoch={:d} lite_test: acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
+                                epoch + 1,
+                                ltest_acc, ltest_f1, ltest_auc, ltest_bac, ltest_sens, ltest_spec
+                            )
+                        )
+                        print(
+                            "epoch={:d} lite_val: acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
+                                epoch + 1,
+                                lval_acc, lval_f1, lval_auc, lval_bac, lval_sens, lval_spec
+                            )
+                        )
+                    if mix_metrics is not None:
+                        (mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec), (mtest_acc, mtest_f1, mtest_auc, mtest_bac, mtest_sens, mtest_spec), alpha_eval = mix_metrics
+                        print(
+                            "epoch={:d} mix_test(alpha={:.3f}): acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
+                                epoch + 1,
+                                float(alpha_eval),
+                                mtest_acc, mtest_f1, mtest_auc, mtest_bac, mtest_sens, mtest_spec
+                            )
+                        )
+                        print(
+                            "epoch={:d} mix_val(alpha={:.3f}): acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
+                                epoch + 1,
+                                float(alpha_eval),
+                                mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec
+                            )
+                        )
                     if best_test is None or test_acc > best_test["acc"]:
                         best_test = {
                             "acc": test_acc,
@@ -684,6 +800,7 @@ def trainEncoder(
                             "spec": val_spec,
                         }
                         best_val_epoch = epoch + 1
+                if ((i + 1) % console_log_every_iters == 0) or is_last_iter:
                     print('\rEpoch: [%2d/%2d] Iter [%4d/%4d] || Time: %4.4f sec || lr: %.6f || Loss: %.4f' % (
                         epoch, args.epochs, i + 1, len(train_loader), time.time() - start,
                         cur_lr, loss.item()), end='', flush=True)

@@ -1,0 +1,24 @@
+{
+  "teacher_ckpt": "./checkpoints/run_20260209_065205/epoch_97_.pth",
+  "lite_ckpt": "./checkpoints/run_s23_relcka_only_20260215_142459/litevae_latest.pth",
+  "kd_proj_ckpt": "./checkpoints/run_s23_relcka_only_20260215_142459/kd_feat_proj_latest.pth",
+  "split": "val",
+  "max_samples": 1200,
+  "teacher_shape": [
+    1200,
+    512
+  ],
+  "student_shape": [
+    1200,
+    256
+  ],
+  "student_proj_shape": [
+    1200,
+    512
+  ],
+  "overlay_done": true,
+  "gram_mse": 3.2672269867362047e-07,
+  "cka": 0.5222803950309753,
+  "lite_feature_mode": "mu",
+  "use_proj_for_gram": true
+}

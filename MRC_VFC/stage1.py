@@ -19,6 +19,22 @@ from utils.sync_batchnorm import convert_model
 from prepare_datasets import construct_ISIC2019LT
 
 
+def _sanitize_cuda_alloc_conf():
+    conf = os.environ.get("PYTORCH_CUDA_ALLOC_CONF", "")
+    if "expandable_segments" not in conf:
+        return
+    tokens = [x.strip() for x in conf.split(",") if x.strip()]
+    kept = [t for t in tokens if not t.startswith("expandable_segments")]
+    if kept:
+        os.environ["PYTORCH_CUDA_ALLOC_CONF"] = ",".join(kept)
+    else:
+        os.environ.pop("PYTORCH_CUDA_ALLOC_CONF", None)
+    print(
+        "[CUDA alloc] Removed unsupported option 'expandable_segments' from "
+        "PYTORCH_CUDA_ALLOC_CONF for this run."
+    )
+
+
 def main(gpu, args, wandb_logger):
     if gpu != 0:
         wandb_logger = None
@@ -79,7 +95,11 @@ def main(gpu, args, wandb_logger):
             return torch.device(f"cuda:{gpu}")
         return torch.device("cpu")
 
-    if args.reload:
+    need_teacher_reload = bool(args.reload)
+    if args.lite_eval_only and not args.mix_eval_enable:
+        need_teacher_reload = False
+
+    if need_teacher_reload:
         checkpoints_root = getattr(args, "checkpoints_root", os.path.dirname(args.checkpoints))
         teacher_run = args.teacher_run_name if args.teacher_run_name else os.path.basename(args.checkpoints)
         teacher_epoch = args.teacher_epoch if args.teacher_epoch > 0 else args.epochs
@@ -88,6 +108,8 @@ def main(gpu, args, wandb_logger):
             teacher_ckpt_dir, "epoch_{}_.pth".format(teacher_epoch)
         )
         model.load_state_dict(torch.load(model_fp, map_location=_get_map_location()))
+    elif args.reload and rank == 0 and args.lite_eval_only and not args.mix_eval_enable:
+        print("[Reload] Skipped teacher checkpoint loading (lite_eval_only=True, mix_eval_enable=False).")
 
     model = model.to(args.device)
     ema_model = ema_model.to(args.device)
@@ -105,6 +127,8 @@ def main(gpu, args, wandb_logger):
     aux_vae = None
     lite_vae = None
     lite_classifier = None
+    lite_vae_teacher = None
+    lite_classifier_teacher = None
     kd_feat_proj = None
     if args.use_aux_vae:
         if args.aux_vae_type == "lite":
@@ -123,6 +147,7 @@ def main(gpu, args, wandb_logger):
             ).to(args.device)
 
     if args.kd_enable or args.mix_enable or args.lite_eval_enable:
+        kd_teacher_source = str(getattr(args, "kd_teacher_source", "resnet")).lower()
         lite_vae = LiteVAE(
             image_size=args.image_size,
             in_channels=3,
@@ -132,18 +157,29 @@ def main(gpu, args, wandb_logger):
             variant=args.lite_vae_variant,
         ).to(args.device)
         lite_classifier = Linear(args.lite_vae_latent_dim, num_class).to(args.device)
-        if args.kd_feat_project:
+        need_feat_proj = bool(args.kd_feat_project) and (args.mix_enable or kd_teacher_source == "resnet")
+        if need_feat_proj:
             if getattr(args, "kd_feat_project_mlp", False):
                 hidden_dim = int(getattr(args, "kd_feat_proj_hidden_dim", 0))
                 if hidden_dim <= 0:
                     hidden_dim = max(args.lite_vae_latent_dim, model.n_features)
                 dropout = float(getattr(args, "kd_feat_proj_dropout", 0.0))
-                kd_feat_proj = torch.nn.Sequential(
-                    torch.nn.Linear(args.lite_vae_latent_dim, hidden_dim),
-                    torch.nn.ReLU(inplace=True),
-                    torch.nn.Dropout(p=dropout),
-                    torch.nn.Linear(hidden_dim, model.n_features),
-                ).to(args.device)
+                depth = int(getattr(args, "kd_feat_proj_depth", 2))
+                if depth <= 1:
+                    kd_feat_proj = torch.nn.Linear(args.lite_vae_latent_dim, model.n_features).to(args.device)
+                else:
+                    layers = []
+                    in_dim = args.lite_vae_latent_dim
+                    for layer_idx in range(depth - 1):
+                        is_last = layer_idx == (depth - 2)
+                        out_dim = model.n_features if is_last else hidden_dim
+                        layers.append(torch.nn.Linear(in_dim, out_dim))
+                        if not is_last:
+                            layers.append(torch.nn.ReLU(inplace=True))
+                            if dropout > 0:
+                                layers.append(torch.nn.Dropout(p=dropout))
+                        in_dim = out_dim
+                    kd_feat_proj = torch.nn.Sequential(*layers).to(args.device)
             else:
                 kd_feat_proj = torch.nn.Linear(args.lite_vae_latent_dim, model.n_features).to(args.device)
 
@@ -163,6 +199,28 @@ def main(gpu, args, wandb_logger):
         _maybe_load(lite_vae, args.lite_vae_resume_path, "lite_vae")
         _maybe_load(lite_classifier, args.lite_classifier_resume_path, "lite_classifier")
         _maybe_load(kd_feat_proj, args.kd_feat_proj_resume_path, "kd_feat_proj")
+
+        if args.kd_enable and kd_teacher_source == "lite":
+            lite_vae_teacher = LiteVAE(
+                image_size=args.image_size,
+                in_channels=3,
+                base_channels=args.lite_vae_base_channels,
+                latent_dim=args.lite_vae_latent_dim,
+                dwt_levels=args.lite_vae_dwt_levels,
+                variant=args.lite_vae_variant,
+            ).to(args.device)
+            lite_classifier_teacher = Linear(args.lite_vae_latent_dim, num_class).to(args.device)
+
+            lite_vae_teacher.load_state_dict(lite_vae.state_dict())
+            lite_classifier_teacher.load_state_dict(lite_classifier.state_dict())
+            for p in lite_vae_teacher.parameters():
+                p.requires_grad_(False)
+            for p in lite_classifier_teacher.parameters():
+                p.requires_grad_(False)
+            lite_vae_teacher.eval()
+            lite_classifier_teacher.eval()
+            if rank == 0:
+                print("[KD] Using Lite self-distillation teacher branch.")
 
     optim_params = []
     if not (args.kd_enable and args.kd_freeze_teacher):
@@ -220,6 +278,8 @@ def main(gpu, args, wandb_logger):
         aux_vae=aux_vae,
         lite_vae=lite_vae,
         lite_classifier=lite_classifier,
+        lite_vae_teacher=lite_vae_teacher,
+        lite_classifier_teacher=lite_classifier_teacher,
         kd_feat_proj=kd_feat_proj,
         log_f=log_f,
     )
@@ -268,6 +328,8 @@ if __name__ == '__main__':
     parser.add_argument('--stage2_debug', action="store_true", help='force stage2 to run in debug mode')
     parser.add_argument('--stage2_log', type=str, default="", help='log file path for stage2 output')
     args = parser.parse_args()
+
+    _sanitize_cuda_alloc_conf()
 
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.num_gpus = torch.cuda.device_count()

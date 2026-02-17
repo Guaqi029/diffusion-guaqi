@@ -20,6 +20,22 @@ from utils import epochVal
 from utils.loss import GCELoss
 
 
+def _sanitize_cuda_alloc_conf():
+    conf = os.environ.get("PYTORCH_CUDA_ALLOC_CONF", "")
+    if "expandable_segments" not in conf:
+        return
+    tokens = [x.strip() for x in conf.split(",") if x.strip()]
+    kept = [t for t in tokens if not t.startswith("expandable_segments")]
+    if kept:
+        os.environ["PYTORCH_CUDA_ALLOC_CONF"] = ",".join(kept)
+    else:
+        os.environ.pop("PYTORCH_CUDA_ALLOC_CONF", None)
+    print(
+        "[CUDA alloc] Removed unsupported option 'expandable_segments' from "
+        "PYTORCH_CUDA_ALLOC_CONF for this run."
+    )
+
+
 def _set_requires_grad(module, flag):
     for p in module.parameters():
         p.requires_grad_(flag)
@@ -341,6 +357,7 @@ if __name__ == "__main__":
     parser.add_argument('--log_file', type=str, default="", help='write debug logs to a local file')
     args = parser.parse_args()
 
+    _sanitize_cuda_alloc_conf()
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.checkpoints_root = args.checkpoints
     if not args.run_name:

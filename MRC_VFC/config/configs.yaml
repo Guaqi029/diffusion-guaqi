@@ -43,6 +43,8 @@ channel_loss_weight: 10
 classification_loss_weight: 1
 probability_loss_weight: 5
 eval_every_epochs: 5
+train_log_every_iters: 10
+console_log_every_iters: 10
 use_class_weight: True
 class_weight_power: 1.0
 class_weight_min: 0.2
@@ -65,15 +67,23 @@ aux_vae_dwt_levels: 1
 kd_enable: True
 kd_only: True  # when True, only KD/LiteVAE losses are optimized
 kd_freeze_teacher: True
+kd_teacher_source: "resnet"  # resnet | lite
+kd_lite_teacher_use_weak_aug: True
+kd_lite_teacher_use_ema: True
+kd_lite_teacher_ema_decay: 0.999
 kd_temperature: 4.0
 kd_logit_weight: 0.2
-kd_feat_weight: 0.2
+kd_feat_weight: 0.0
+kd_feat_start_epoch: 9999
 kd_feat_norm: "l2"  # l2 | none
 kd_feat_project: True
 kd_feat_project_mlp: True
+kd_feat_proj_depth: 3
 kd_feat_proj_hidden_dim: 512
 kd_feat_proj_dropout: 0.1
-kd_struct_weight: 0.5
+kd_struct_weight: 1.0
+kd_struct_start_epoch: 0
+kd_struct_type: "cka"  # gram | cka
 kd_struct_norm: "l2"  # l2 | none
 kd_struct_center: False
 kd_save_lite: True

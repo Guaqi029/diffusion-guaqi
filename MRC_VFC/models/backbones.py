@@ -32,7 +32,7 @@ class CreateModel(nn.Module):
         self.n_classes = out_features
         
         if backbone.startswith('resnet'):
-            self.n_features = model.fc.in_features
+            self.n_features = model.fc.in_features 
             model.fc = Identity()
 
         elif backbone.startswith('densenet'):

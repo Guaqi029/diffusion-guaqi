@@ -1,0 +1,21 @@
+{
+  "teacher_ckpt": "./checkpoints/run_20260209_065205/epoch_97_.pth",
+  "lite_ckpt": "./checkpoints/run_s23_selfkd_b128_20260217_121856/litevae_latest.pth",
+  "kd_proj_ckpt": "",
+  "split": "val",
+  "max_samples": 1200,
+  "teacher_shape": [
+    1200,
+    512
+  ],
+  "student_shape": [
+    1200,
+    256
+  ],
+  "student_proj_shape": null,
+  "overlay_done": false,
+  "gram_mse": 5.152077392267529e-06,
+  "cka": 0.5863879323005676,
+  "lite_feature_mode": "mu",
+  "use_proj_for_gram": true
+}

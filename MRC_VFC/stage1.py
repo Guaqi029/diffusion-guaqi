@@ -95,7 +95,9 @@ def main(gpu, args, wandb_logger):
             return torch.device(f"cuda:{gpu}")
         return torch.device("cpu")
 
-    need_teacher_reload = bool(args.reload)
+    kd_teacher_source = str(getattr(args, "kd_teacher_source", "resnet")).lower()
+    need_resnet_teacher = not (args.kd_enable and args.kd_only and kd_teacher_source == "lite" and not args.mix_enable)
+    need_teacher_reload = bool(args.reload) and need_resnet_teacher
     if args.lite_eval_only and not args.mix_eval_enable:
         need_teacher_reload = False
 
@@ -110,6 +112,8 @@ def main(gpu, args, wandb_logger):
         model.load_state_dict(torch.load(model_fp, map_location=_get_map_location()))
     elif args.reload and rank == 0 and args.lite_eval_only and not args.mix_eval_enable:
         print("[Reload] Skipped teacher checkpoint loading (lite_eval_only=True, mix_eval_enable=False).")
+    elif args.reload and rank == 0 and not need_resnet_teacher:
+        print("[Reload] Skipped ResNet teacher checkpoint loading (kd_teacher_source=lite, kd_only=True).")
 
     model = model.to(args.device)
     ema_model = ema_model.to(args.device)
@@ -147,7 +151,6 @@ def main(gpu, args, wandb_logger):
             ).to(args.device)
 
     if args.kd_enable or args.mix_enable or args.lite_eval_enable:
-        kd_teacher_source = str(getattr(args, "kd_teacher_source", "resnet")).lower()
         lite_vae = LiteVAE(
             image_size=args.image_size,
             in_channels=3,
@@ -186,11 +189,23 @@ def main(gpu, args, wandb_logger):
         def _maybe_load(module, path, name):
             if module is None or not path:
                 return
-            load_path = path
-            if not os.path.isabs(load_path):
-                load_path = os.path.join(args.checkpoints, load_path)
-            if not os.path.exists(load_path):
-                raise FileNotFoundError(f"{name} checkpoint not found: {load_path}")
+            candidates = []
+            if os.path.isabs(path):
+                candidates.append(path)
+            else:
+                checkpoints_root = getattr(args, "checkpoints_root", os.path.dirname(args.checkpoints))
+                candidates.extend([
+                    path,  # e.g. ./checkpoints/run_x/xxx.pth
+                    os.path.join(args.checkpoints, path),  # current run dir
+                    os.path.join(checkpoints_root, path),  # checkpoints root
+                ])
+            load_path = ""
+            for cand in candidates:
+                if os.path.exists(cand):
+                    load_path = cand
+                    break
+            if not load_path:
+                raise FileNotFoundError(f"{name} checkpoint not found: {candidates[0] if candidates else path}")
             state = torch.load(load_path, map_location=_get_map_location())
             module.load_state_dict(state)
             if rank == 0:
@@ -221,6 +236,11 @@ def main(gpu, args, wandb_logger):
             lite_classifier_teacher.eval()
             if rank == 0:
                 print("[KD] Using Lite self-distillation teacher branch.")
+                if not args.lite_vae_resume_path:
+                    print(
+                        "[KD] Warning: lite teacher is cold-started (no lite_vae_resume_path). "
+                        "This can reinforce early mistakes."
+                    )
 
     optim_params = []
     if not (args.kd_enable and args.kd_freeze_teacher):

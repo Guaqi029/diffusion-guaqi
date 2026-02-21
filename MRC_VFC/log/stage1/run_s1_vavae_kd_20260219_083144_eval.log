@@ -1,0 +1,6 @@
+class_weight enabled: counts=[2303.0, 9012.0, 1231.0, 170.0, 707.0, 18.0, 26.0, 89.0], weights=[0.185932, 0.185932, 0.185932, 0.384072, 0.185932, 3.627344, 2.511238, 0.73362]
+kd schedule: feat_start=9999, struct_start=0, struct_type=cka
+kd_teacher_source=vavae, kd_lite_teacher_use_weak_aug=True, kd_lite_teacher_use_ema=True, kd_vavae_teacher_use_weak_aug=True
+lite_feature_mode=mu, mix_feature_mode=mu
+lite_val: acc=0.687983, f1=0.156312, auc=0.810536, bac=0.157804, sens=0.157804, spec=0.893682
+lite_test: acc=0.699793, f1=0.170122, auc=0.789787, bac=0.167059, sens=0.167059, spec=0.896506

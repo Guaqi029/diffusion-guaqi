@@ -6,7 +6,7 @@ import torch
 import wandb
 import argparse
 import torch.distributed as dist
-from models import CreateModel, AuxVAE, LiteAuxVAE, LiteVAE, Linear
+from models import CreateModel, AuxVAE, LiteAuxVAE, LiteVAE, Linear, VAVAETeacherEncoder
 import torch.multiprocessing as mp
 from torch.nn.parallel import DataParallel
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -85,9 +85,24 @@ def main(gpu, args, wandb_logger):
     num_class = train_dataset.n_class
     args.num_classes = num_class
 
-    # model init
-    model = CreateModel(backbone=args.backbone, ema=False, out_features=num_class, pretrained=args.pretrained)
-    ema_model = CreateModel(backbone=args.backbone, ema=True, out_features=num_class, pretrained=args.pretrained)
+    kd_teacher_source = str(getattr(args, "kd_teacher_source", "resnet")).lower()
+    show_teacher_metrics = bool(getattr(args, "show_teacher_metrics", False))
+    skip_resnet_backbone = (
+        args.kd_enable
+        and args.kd_only
+        and kd_teacher_source in ("lite", "vavae")
+        and not args.mix_enable
+        and not show_teacher_metrics
+    )
+
+    # model init (resnet path can be skipped in pure KD-only lite/vavae runs)
+    model = None
+    ema_model = None
+    if not skip_resnet_backbone:
+        model = CreateModel(backbone=args.backbone, ema=False, out_features=num_class, pretrained=args.pretrained)
+        ema_model = CreateModel(backbone=args.backbone, ema=True, out_features=num_class, pretrained=args.pretrained)
+    elif rank == 0:
+        print(f"[Init] Skip ResNet backbone creation (kd_teacher_source={kd_teacher_source}, kd_only=True).")
     def _get_map_location():
         if isinstance(args.device, torch.device):
             return args.device
@@ -95,13 +110,21 @@ def main(gpu, args, wandb_logger):
             return torch.device(f"cuda:{gpu}")
         return torch.device("cpu")
 
-    kd_teacher_source = str(getattr(args, "kd_teacher_source", "resnet")).lower()
-    need_resnet_teacher = not (args.kd_enable and args.kd_only and kd_teacher_source == "lite" and not args.mix_enable)
+    if args.mix_enable and kd_teacher_source == "vavae":
+        raise ValueError("mix_enable is not supported with kd_teacher_source=vavae in current implementation.")
+    need_resnet_teacher = not (
+        args.kd_enable
+        and args.kd_only
+        and kd_teacher_source in ("lite", "vavae")
+        and not args.mix_enable
+    )
     need_teacher_reload = bool(args.reload) and need_resnet_teacher
     if args.lite_eval_only and not args.mix_eval_enable:
         need_teacher_reload = False
 
     if need_teacher_reload:
+        if model is None:
+            raise RuntimeError("need_teacher_reload=True but ResNet model is not initialized.")
         checkpoints_root = getattr(args, "checkpoints_root", os.path.dirname(args.checkpoints))
         teacher_run = args.teacher_run_name if args.teacher_run_name else os.path.basename(args.checkpoints)
         teacher_epoch = args.teacher_epoch if args.teacher_epoch > 0 else args.epochs
@@ -113,17 +136,22 @@ def main(gpu, args, wandb_logger):
     elif args.reload and rank == 0 and args.lite_eval_only and not args.mix_eval_enable:
         print("[Reload] Skipped teacher checkpoint loading (lite_eval_only=True, mix_eval_enable=False).")
     elif args.reload and rank == 0 and not need_resnet_teacher:
-        print("[Reload] Skipped ResNet teacher checkpoint loading (kd_teacher_source=lite, kd_only=True).")
+        print(
+            f"[Reload] Skipped ResNet teacher checkpoint loading "
+            f"(kd_teacher_source={kd_teacher_source}, kd_only=True)."
+        )
 
-    model = model.to(args.device)
-    ema_model = ema_model.to(args.device)
+    if model is not None:
+        model = model.to(args.device)
+    if ema_model is not None:
+        ema_model = ema_model.to(args.device)
 
-    if args.kd_enable and args.kd_freeze_teacher:
+    if args.kd_enable and args.kd_freeze_teacher and model is not None and ema_model is not None:
         for param in model.parameters():
             param.requires_grad_(False)
         for param in ema_model.parameters():
             param.requires_grad_(False)
-    if args.mix_enable and args.mix_freeze_teacher:
+    if args.mix_enable and args.mix_freeze_teacher and model is not None:
         if hasattr(model, "encoder"):
             for param in model.encoder.parameters():
                 param.requires_grad_(False)
@@ -133,6 +161,7 @@ def main(gpu, args, wandb_logger):
     lite_classifier = None
     lite_vae_teacher = None
     lite_classifier_teacher = None
+    vavae_teacher = None
     kd_feat_proj = None
     if args.use_aux_vae:
         if args.aux_vae_type == "lite":
@@ -144,6 +173,8 @@ def main(gpu, args, wandb_logger):
                 dwt_levels=args.aux_vae_dwt_levels,
             ).to(args.device)
         else:
+            if model is None:
+                raise RuntimeError("aux_vae_input=features requires ResNet backbone, but it is disabled.")
             aux_vae = AuxVAE(
                 in_features=model.n_features,
                 latent_dim=args.aux_vae_latent_dim,
@@ -160,22 +191,33 @@ def main(gpu, args, wandb_logger):
             variant=args.lite_vae_variant,
         ).to(args.device)
         lite_classifier = Linear(args.lite_vae_latent_dim, num_class).to(args.device)
-        need_feat_proj = bool(args.kd_feat_project) and (args.mix_enable or kd_teacher_source == "resnet")
+        if kd_teacher_source == "resnet":
+            if model is None:
+                raise RuntimeError("kd_teacher_source=resnet requires ResNet backbone, but it is disabled.")
+            kd_teacher_feat_dim = model.n_features
+        elif kd_teacher_source == "vavae":
+            kd_teacher_feat_dim = int(getattr(args, "vavae_teacher_latent_dim", 32))
+        else:
+            kd_teacher_feat_dim = args.lite_vae_latent_dim
+
+        need_feat_proj = bool(args.kd_feat_project) and (
+            args.mix_enable or (kd_teacher_feat_dim != args.lite_vae_latent_dim)
+        )
         if need_feat_proj:
             if getattr(args, "kd_feat_project_mlp", False):
                 hidden_dim = int(getattr(args, "kd_feat_proj_hidden_dim", 0))
                 if hidden_dim <= 0:
-                    hidden_dim = max(args.lite_vae_latent_dim, model.n_features)
+                    hidden_dim = max(args.lite_vae_latent_dim, kd_teacher_feat_dim)
                 dropout = float(getattr(args, "kd_feat_proj_dropout", 0.0))
                 depth = int(getattr(args, "kd_feat_proj_depth", 2))
                 if depth <= 1:
-                    kd_feat_proj = torch.nn.Linear(args.lite_vae_latent_dim, model.n_features).to(args.device)
+                    kd_feat_proj = torch.nn.Linear(args.lite_vae_latent_dim, kd_teacher_feat_dim).to(args.device)
                 else:
                     layers = []
                     in_dim = args.lite_vae_latent_dim
                     for layer_idx in range(depth - 1):
                         is_last = layer_idx == (depth - 2)
-                        out_dim = model.n_features if is_last else hidden_dim
+                        out_dim = kd_teacher_feat_dim if is_last else hidden_dim
                         layers.append(torch.nn.Linear(in_dim, out_dim))
                         if not is_last:
                             layers.append(torch.nn.ReLU(inplace=True))
@@ -184,13 +226,13 @@ def main(gpu, args, wandb_logger):
                         in_dim = out_dim
                     kd_feat_proj = torch.nn.Sequential(*layers).to(args.device)
             else:
-                kd_feat_proj = torch.nn.Linear(args.lite_vae_latent_dim, model.n_features).to(args.device)
+                kd_feat_proj = torch.nn.Linear(args.lite_vae_latent_dim, kd_teacher_feat_dim).to(args.device)
 
-        def _maybe_load(module, path, name):
-            if module is None or not path:
-                return
+        def _resolve_existing_path(path):
+            if not path:
+                return ""
             candidates = []
-            if os.path.isabs(path):
+            if os.path.isabs(path) or str(path).startswith("./"):
                 candidates.append(path)
             else:
                 checkpoints_root = getattr(args, "checkpoints_root", os.path.dirname(args.checkpoints))
@@ -199,13 +241,17 @@ def main(gpu, args, wandb_logger):
                     os.path.join(args.checkpoints, path),  # current run dir
                     os.path.join(checkpoints_root, path),  # checkpoints root
                 ])
-            load_path = ""
             for cand in candidates:
                 if os.path.exists(cand):
-                    load_path = cand
-                    break
+                    return cand
+            return ""
+
+        def _maybe_load(module, path, name):
+            if module is None or not path:
+                return
+            load_path = _resolve_existing_path(path)
             if not load_path:
-                raise FileNotFoundError(f"{name} checkpoint not found: {candidates[0] if candidates else path}")
+                raise FileNotFoundError(f"{name} checkpoint not found: {path}")
             state = torch.load(load_path, map_location=_get_map_location())
             module.load_state_dict(state)
             if rank == 0:
@@ -241,9 +287,39 @@ def main(gpu, args, wandb_logger):
                         "[KD] Warning: lite teacher is cold-started (no lite_vae_resume_path). "
                         "This can reinforce early mistakes."
                     )
+        elif args.kd_enable and kd_teacher_source == "vavae":
+            vavae_teacher = VAVAETeacherEncoder(
+                in_channels=3,
+                ch=int(getattr(args, "vavae_teacher_ch", 128)),
+                ch_mult=getattr(args, "vavae_teacher_ch_mult", "1,1,2,2,4"),
+                num_res_blocks=int(getattr(args, "vavae_teacher_num_res_blocks", 2)),
+                z_channels=int(getattr(args, "vavae_teacher_latent_dim", 32)),
+                attn_levels=getattr(args, "vavae_teacher_attn_levels", "4"),
+                input_size=int(getattr(args, "vavae_teacher_input_size", args.image_size)),
+                resize_input=bool(getattr(args, "vavae_teacher_resize_input", False)),
+                pool=str(getattr(args, "vavae_teacher_pool", "avg")),
+                feature_from=str(getattr(args, "vavae_teacher_feature_from", "mu")),
+            ).to(args.device)
+            vavae_ckpt_path = _resolve_existing_path(getattr(args, "vavae_ckpt_path", ""))
+            if not vavae_ckpt_path:
+                raise FileNotFoundError(
+                    "VA-VAE checkpoint not found. Set --vavae_ckpt_path to a valid file path."
+                )
+            load_info = vavae_teacher.load_pretrained(
+                vavae_ckpt_path,
+                strict=bool(getattr(args, "vavae_teacher_load_strict", False)),
+                partial=bool(getattr(args, "vavae_teacher_partial_load", True)),
+                map_location=_get_map_location(),
+            )
+            for p in vavae_teacher.parameters():
+                p.requires_grad_(False)
+            vavae_teacher.eval()
+            if rank == 0:
+                print(f"[KD] Using VA-VAE teacher from: {vavae_ckpt_path}")
+                print(f"[KD] VA-VAE load stats: {load_info}")
 
     optim_params = []
-    if not (args.kd_enable and args.kd_freeze_teacher):
+    if model is not None and not (args.kd_enable and args.kd_freeze_teacher):
         optim_params += list(model.parameters())
     if aux_vae is not None:
         optim_params += list(aux_vae.parameters())
@@ -257,10 +333,12 @@ def main(gpu, args, wandb_logger):
     optimizer = torch.optim.SGD(optim_params, lr=args.lr, momentum=0.9)
 
     if args.dataparallel:
-        model = convert_model(model)
-        model = DataParallel(model)
-        ema_model = convert_model(ema_model)
-        ema_model = DataLoader(ema_model)
+        if model is not None:
+            model = convert_model(model)
+            model = DataParallel(model)
+        if ema_model is not None:
+            ema_model = convert_model(ema_model)
+            ema_model = DataLoader(ema_model)
         if aux_vae is not None:
             aux_vae = DataParallel(aux_vae)
         if lite_vae is not None:
@@ -272,7 +350,7 @@ def main(gpu, args, wandb_logger):
     else:
         if args.world_size > 1:
             ddp_find_unused = bool(getattr(args, "ddp_find_unused_parameters", True))
-            if any(p.requires_grad for p in model.parameters()):
+            if model is not None and any(p.requires_grad for p in model.parameters()):
                 model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
                 model = DDP(model, device_ids=[gpu], find_unused_parameters=ddp_find_unused)
             if lite_vae is not None:
@@ -300,6 +378,7 @@ def main(gpu, args, wandb_logger):
         lite_classifier=lite_classifier,
         lite_vae_teacher=lite_vae_teacher,
         lite_classifier_teacher=lite_classifier_teacher,
+        vavae_teacher=vavae_teacher,
         kd_feat_proj=kd_feat_proj,
         log_f=log_f,
     )
@@ -408,4 +487,3 @@ if __name__ == '__main__':
     # Run stage2 once after stage1 finishes (only in the launcher process)
     if args.auto_run_stage2:
         run_stage2(args)
-

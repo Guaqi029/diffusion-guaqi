@@ -336,7 +336,13 @@ class LiteVAE(nn.Module):
             image_size=image_size,
         )
 
+    def encode(self, x):
+        return self.encoder(x)
+
+    def decode(self, z):
+        return self.decoder(z)
+
     def forward(self, x):
-        mu, logvar, z = self.encoder(x)
-        recon = self.decoder(z)
+        mu, logvar, z = self.encode(x)
+        recon = self.decode(z)
         return mu, logvar, z, recon

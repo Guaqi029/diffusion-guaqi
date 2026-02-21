@@ -26,7 +26,7 @@ imbalance_factor: 500 # only for ISIC2019LT
 # Stage1 options
 seed: 42
 batch_size: 128
-image_size: 224
+image_size: 256
 start_epoch: 0
 epochs: 30
 pretrained: True
@@ -37,6 +37,7 @@ reload: True
 lr: 0.001
 grad_clip_enable: True
 grad_clip_norm: 1.0
+grad_accum_steps: 1
 ema_decay: 0.999
 batch_loss_weight: 10
 channel_loss_weight: 10
@@ -45,6 +46,7 @@ probability_loss_weight: 5
 eval_every_epochs: 5
 train_log_every_iters: 10
 console_log_every_iters: 10
+show_teacher_metrics: False
 use_class_weight: True
 class_weight_power: 1.0
 class_weight_min: 0.2
@@ -67,14 +69,15 @@ aux_vae_dwt_levels: 1
 kd_enable: True
 kd_only: True  # when True, only KD/LiteVAE losses are optimized
 kd_freeze_teacher: True
-kd_teacher_source: "resnet"  # resnet | lite
+kd_teacher_source: "vavae"  # resnet | lite | vavae
 kd_lite_teacher_use_weak_aug: True
 kd_lite_teacher_use_ema: True
 kd_lite_teacher_ema_decay: 0.999
+kd_vavae_teacher_use_weak_aug: True
 kd_temperature: 4.0
 kd_logit_weight: 0.2
 kd_feat_weight: 0.0
-kd_feat_start_epoch: 9999
+kd_feat_start_epoch: 0
 kd_feat_norm: "l2"  # l2 | none
 kd_feat_project: True
 kd_feat_project_mlp: True
@@ -89,6 +92,20 @@ kd_struct_center: False
 kd_save_lite: True
 kd_save_every_epoch: True
 kd_save_latest: True
+
+# External VA-VAE teacher (for kd_teacher_source=vavae)
+vavae_ckpt_path: "./checkpoints/pretrained/yao_vavae/vavae-imagenet256-f16d32-dinov2.pt"
+vavae_teacher_latent_dim: 32
+vavae_teacher_ch: 128
+vavae_teacher_ch_mult: "1,1,2,2,4"
+vavae_teacher_num_res_blocks: 2
+vavae_teacher_attn_levels: "4"
+vavae_teacher_input_size: 256
+vavae_teacher_resize_input: False
+vavae_teacher_pool: "avg"  # avg | max | flat
+vavae_teacher_feature_from: "mu"  # mu | moments
+vavae_teacher_partial_load: True
+vavae_teacher_load_strict: False
 
 # Stage1 feature mix (Step4)
 mix_enable: False

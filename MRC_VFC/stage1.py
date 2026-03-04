@@ -3,10 +3,17 @@ import sys
 import subprocess
 import time
 import torch
-import wandb
 import argparse
 import torch.distributed as dist
-from models import CreateModel, AuxVAE, LiteAuxVAE, LiteVAE, Linear, VAVAETeacherEncoder
+from models import (
+    CreateModel,
+    AuxVAE,
+    LiteAuxVAE,
+    LiteVAE,
+    Linear,
+    VAVAETeacherEncoder,
+    VAVAEStudentVAE,
+)
 import torch.multiprocessing as mp
 from torch.nn.parallel import DataParallel
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -17,6 +24,28 @@ from train import trainEncoder
 from utils.yaml_config_hook import yaml_config_hook
 from utils.sync_batchnorm import convert_model
 from prepare_datasets import construct_ISIC2019LT
+
+try:
+    import wandb
+except ImportError:
+    wandb = None
+
+
+def _str2bool(v):
+    if isinstance(v, bool):
+        return v
+    s = str(v).strip().lower()
+    if s in {"1", "true", "t", "yes", "y", "on"}:
+        return True
+    if s in {"0", "false", "f", "no", "n", "off"}:
+        return False
+    raise argparse.ArgumentTypeError(f"Boolean value expected, got: {v}")
+
+
+def _arg_type_from_default(v):
+    if isinstance(v, bool):
+        return _str2bool
+    return type(v)
 
 
 def _sanitize_cuda_alloc_conf():
@@ -86,6 +115,10 @@ def main(gpu, args, wandb_logger):
     args.num_classes = num_class
 
     kd_teacher_source = str(getattr(args, "kd_teacher_source", "resnet")).lower()
+    student_source = str(getattr(args, "student_source", "lite")).lower()
+    if student_source not in ("lite", "vavae"):
+        raise ValueError("student_source must be one of: lite | vavae")
+    args.student_source = student_source
     show_teacher_metrics = bool(getattr(args, "show_teacher_metrics", False))
     skip_resnet_backbone = (
         args.kd_enable
@@ -111,7 +144,10 @@ def main(gpu, args, wandb_logger):
         return torch.device("cpu")
 
     if args.mix_enable and kd_teacher_source == "vavae":
-        raise ValueError("mix_enable is not supported with kd_teacher_source=vavae in current implementation.")
+        if rank == 0:
+            print("[Config] mix_enable=True is not supported with kd_teacher_source=vavae. Force set mix_enable=False, mix_eval_enable=False.")
+        args.mix_enable = False
+        args.mix_eval_enable = False
     need_resnet_teacher = not (
         args.kd_enable
         and args.kd_only
@@ -182,15 +218,50 @@ def main(gpu, args, wandb_logger):
             ).to(args.device)
 
     if args.kd_enable or args.mix_enable or args.lite_eval_enable:
-        lite_vae = LiteVAE(
-            image_size=args.image_size,
-            in_channels=3,
-            base_channels=args.lite_vae_base_channels,
-            latent_dim=args.lite_vae_latent_dim,
-            dwt_levels=args.lite_vae_dwt_levels,
-            variant=args.lite_vae_variant,
-        ).to(args.device)
-        lite_classifier = Linear(args.lite_vae_latent_dim, num_class).to(args.device)
+        def _build_student_vae():
+            if student_source == "vavae":
+                student_latent_dim = int(
+                    getattr(
+                        args,
+                        "vavae_student_latent_dim",
+                        getattr(args, "vavae_teacher_latent_dim", 32),
+                    )
+                )
+                student = VAVAEStudentVAE(
+                    in_channels=3,
+                    ch=int(getattr(args, "vavae_student_ch", getattr(args, "vavae_teacher_ch", 128))),
+                    ch_mult=getattr(args, "vavae_student_ch_mult", getattr(args, "vavae_teacher_ch_mult", "1,1,2,2,4")),
+                    num_res_blocks=int(
+                        getattr(args, "vavae_student_num_res_blocks", getattr(args, "vavae_teacher_num_res_blocks", 2))
+                    ),
+                    z_channels=student_latent_dim,
+                    attn_levels=getattr(
+                        args,
+                        "vavae_student_attn_levels",
+                        getattr(args, "vavae_teacher_attn_levels", "4"),
+                    ),
+                    input_size=int(getattr(args, "vavae_student_input_size", args.image_size)),
+                    resize_input=bool(getattr(args, "vavae_student_resize_input", False)),
+                    pool=str(getattr(args, "vavae_student_pool", "avg")),
+                    feature_from=str(getattr(args, "vavae_student_feature_from", "mu")),
+                    enable_decoder=bool(getattr(args, "vavae_student_enable_decoder", False)),
+                )
+                return student, student_latent_dim
+
+            student = LiteVAE(
+                image_size=args.image_size,
+                in_channels=3,
+                base_channels=args.lite_vae_base_channels,
+                latent_dim=args.lite_vae_latent_dim,
+                dwt_levels=args.lite_vae_dwt_levels,
+                variant=args.lite_vae_variant,
+            )
+            return student, int(args.lite_vae_latent_dim)
+
+        lite_vae, student_latent_dim = _build_student_vae()
+        lite_vae = lite_vae.to(args.device)
+        args.student_latent_dim = int(student_latent_dim)
+        lite_classifier = Linear(args.student_latent_dim, num_class).to(args.device)
         if kd_teacher_source == "resnet":
             if model is None:
                 raise RuntimeError("kd_teacher_source=resnet requires ResNet backbone, but it is disabled.")
@@ -198,35 +269,38 @@ def main(gpu, args, wandb_logger):
         elif kd_teacher_source == "vavae":
             kd_teacher_feat_dim = int(getattr(args, "vavae_teacher_latent_dim", 32))
         else:
-            kd_teacher_feat_dim = args.lite_vae_latent_dim
+            kd_teacher_feat_dim = args.student_latent_dim
 
         need_feat_proj = bool(args.kd_feat_project) and (
-            args.mix_enable or (kd_teacher_feat_dim != args.lite_vae_latent_dim)
+            args.mix_enable or (kd_teacher_feat_dim != args.student_latent_dim)
         )
         if need_feat_proj:
             if getattr(args, "kd_feat_project_mlp", False):
                 hidden_dim = int(getattr(args, "kd_feat_proj_hidden_dim", 0))
                 if hidden_dim <= 0:
-                    hidden_dim = max(args.lite_vae_latent_dim, kd_teacher_feat_dim)
+                    hidden_dim = max(args.student_latent_dim, kd_teacher_feat_dim)
                 dropout = float(getattr(args, "kd_feat_proj_dropout", 0.0))
+                use_bn = bool(getattr(args, "kd_feat_proj_use_bn", True))
                 depth = int(getattr(args, "kd_feat_proj_depth", 2))
                 if depth <= 1:
-                    kd_feat_proj = torch.nn.Linear(args.lite_vae_latent_dim, kd_teacher_feat_dim).to(args.device)
+                    kd_feat_proj = torch.nn.Linear(args.student_latent_dim, kd_teacher_feat_dim).to(args.device)
                 else:
                     layers = []
-                    in_dim = args.lite_vae_latent_dim
+                    in_dim = args.student_latent_dim
                     for layer_idx in range(depth - 1):
                         is_last = layer_idx == (depth - 2)
                         out_dim = kd_teacher_feat_dim if is_last else hidden_dim
                         layers.append(torch.nn.Linear(in_dim, out_dim))
                         if not is_last:
+                            if use_bn:
+                                layers.append(torch.nn.BatchNorm1d(out_dim))
                             layers.append(torch.nn.ReLU(inplace=True))
                             if dropout > 0:
                                 layers.append(torch.nn.Dropout(p=dropout))
                         in_dim = out_dim
                     kd_feat_proj = torch.nn.Sequential(*layers).to(args.device)
             else:
-                kd_feat_proj = torch.nn.Linear(args.lite_vae_latent_dim, kd_teacher_feat_dim).to(args.device)
+                kd_feat_proj = torch.nn.Linear(args.student_latent_dim, kd_teacher_feat_dim).to(args.device)
 
         def _resolve_existing_path(path):
             if not path:
@@ -260,17 +334,23 @@ def main(gpu, args, wandb_logger):
         _maybe_load(lite_vae, args.lite_vae_resume_path, "lite_vae")
         _maybe_load(lite_classifier, args.lite_classifier_resume_path, "lite_classifier")
         _maybe_load(kd_feat_proj, args.kd_feat_proj_resume_path, "kd_feat_proj")
+        if student_source == "vavae" and not args.lite_vae_resume_path:
+            vavae_student_init_path = _resolve_existing_path(getattr(args, "vavae_student_init_path", ""))
+            if vavae_student_init_path:
+                load_info = lite_vae.load_pretrained(
+                    vavae_student_init_path,
+                    strict=bool(getattr(args, "vavae_student_load_strict", False)),
+                    partial=bool(getattr(args, "vavae_student_partial_load", True)),
+                    map_location=_get_map_location(),
+                )
+                if rank == 0:
+                    print(f"[Init] Loaded VA-VAE student init from: {vavae_student_init_path}")
+                    print(f"[Init] VA-VAE student load stats: {load_info}")
 
         if args.kd_enable and kd_teacher_source == "lite":
-            lite_vae_teacher = LiteVAE(
-                image_size=args.image_size,
-                in_channels=3,
-                base_channels=args.lite_vae_base_channels,
-                latent_dim=args.lite_vae_latent_dim,
-                dwt_levels=args.lite_vae_dwt_levels,
-                variant=args.lite_vae_variant,
-            ).to(args.device)
-            lite_classifier_teacher = Linear(args.lite_vae_latent_dim, num_class).to(args.device)
+            lite_vae_teacher, _ = _build_student_vae()
+            lite_vae_teacher = lite_vae_teacher.to(args.device)
+            lite_classifier_teacher = Linear(args.student_latent_dim, num_class).to(args.device)
 
             lite_vae_teacher.load_state_dict(lite_vae.state_dict())
             lite_classifier_teacher.load_state_dict(lite_classifier.state_dict())
@@ -281,10 +361,10 @@ def main(gpu, args, wandb_logger):
             lite_vae_teacher.eval()
             lite_classifier_teacher.eval()
             if rank == 0:
-                print("[KD] Using Lite self-distillation teacher branch.")
+                print(f"[KD] Using {student_source.upper()} self-distillation teacher branch.")
                 if not args.lite_vae_resume_path:
                     print(
-                        "[KD] Warning: lite teacher is cold-started (no lite_vae_resume_path). "
+                        "[KD] Warning: self-distill teacher is cold-started (no lite_vae_resume_path). "
                         "This can reinforce early mistakes."
                     )
         elif args.kd_enable and kd_teacher_source == "vavae":
@@ -419,7 +499,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     yaml_config = yaml_config_hook("./config/configs.yaml")
     for k, v in yaml_config.items():
-        parser.add_argument(f"--{k}", default=v, type=type(v))
+        parser.add_argument(f"--{k}", default=v, type=_arg_type_from_default(v))
 
     parser.add_argument('--debug', action="store_true", help='debug mode(disable wandb)')
     parser.add_argument('--log_file', type=str, default="", help='write debug logs to a local file')
@@ -460,6 +540,10 @@ if __name__ == '__main__':
 
     # init wandb if not in debug mode
     if not args.debug:
+        if wandb is None:
+            raise ModuleNotFoundError(
+                "wandb is not installed. Install it or run with --debug."
+            )
         wandb.login(key="[Your wandb key here]")
         config = dict()
 

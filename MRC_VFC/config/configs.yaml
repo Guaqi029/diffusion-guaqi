@@ -66,6 +66,23 @@ aux_vae_base_channels: 64
 aux_vae_dwt_levels: 1
 
 # Stage1 LiteVAE KD pretraining (ResNet teacher -> LiteVAE student)
+student_source: "lite"  # lite | vavae
+
+# VA-VAE student options (used when student_source=vavae)
+vavae_student_init_path: ""
+vavae_student_latent_dim: 32
+vavae_student_ch: 128
+vavae_student_ch_mult: "1,1,2,2,4"
+vavae_student_num_res_blocks: 2
+vavae_student_attn_levels: "4"
+vavae_student_input_size: 256
+vavae_student_resize_input: False
+vavae_student_pool: "avg"  # avg | max | flat
+vavae_student_feature_from: "mu"  # mu | moments
+vavae_student_enable_decoder: False
+vavae_student_partial_load: True
+vavae_student_load_strict: False
+
 kd_enable: True
 kd_only: True  # when True, only KD/LiteVAE losses are optimized
 kd_freeze_teacher: True
@@ -75,7 +92,7 @@ kd_lite_teacher_use_ema: True
 kd_lite_teacher_ema_decay: 0.999
 kd_vavae_teacher_use_weak_aug: True
 kd_temperature: 4.0
-kd_logit_weight: 0.2
+kd_logit_weight: 0.0
 kd_feat_weight: 0.0
 kd_feat_start_epoch: 0
 kd_feat_norm: "l2"  # l2 | none
@@ -83,9 +100,10 @@ kd_feat_project: True
 kd_feat_project_mlp: True
 kd_feat_proj_depth: 3
 kd_feat_proj_hidden_dim: 512
-kd_feat_proj_dropout: 0.1
+kd_feat_proj_dropout: 0.2
+kd_feat_proj_use_bn: True
 kd_struct_weight: 1.0
-kd_struct_start_epoch: 0
+kd_struct_start_epoch: 20
 kd_struct_type: "cka"  # gram | cka
 kd_struct_norm: "l2"  # l2 | none
 kd_struct_center: False
@@ -122,7 +140,7 @@ lite_vae_variant: "full"  # full | simple
 lite_vae_dwt_levels: 3
 lite_vae_base_channels: 128
 lite_vae_latent_dim: 256
-lite_vae_recon_weight: 0.05
+lite_vae_recon_weight: 0.0
 lite_vae_kl_weight: 0.0
 lite_vae_recon_type: "l1"  # l1 or mse
 lite_student_ce_weight: 1.0
@@ -163,7 +181,7 @@ backbone_lr: 0.000001
 virtual_size: 5000
 stage2_use_class_weight: True
 stage2_class_weight_source: "real"  # real | train_for_cls
-stage2_feature_source: "lite"  # resnet | lite
+stage2_feature_source: "vavae"  # resnet | lite | vavae
 stage2_lite_feature_mode: "mu"  # mu | z
 stage2_backbone_resume_path: ""
 stage2_enable_estep: True

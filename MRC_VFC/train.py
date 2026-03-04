@@ -2,13 +2,17 @@
 import os
 import time
 import torch
-import wandb
 import torch.nn as nn
 import torch.nn.functional as F
 from utils.loss import ProbabilityLoss, BatchLoss, ChannelLoss, GaussianPriorLoss
 import torch.distributed as dist
 from utils import ramps, epochVal
 from utils.metrics import compute_avg_metrics
+
+try:
+    import wandb
+except ImportError:
+    wandb = None
 
 
 def update_ema_variables(model, ema_model, alpha, global_step):
@@ -479,8 +483,9 @@ def trainEncoder(
                 ema_activations, ema_output = None, None
 
             # classification loss
+            zero_device = img.device
             if outputs is None:
-                classification_loss = torch.tensor(0.0, device=img.device)
+                classification_loss = torch.tensor(0.0, device=zero_device)
             else:
                 classification_loss = classification_loss_func(outputs, label)
 
@@ -488,19 +493,19 @@ def trainEncoder(
             if not disable_mrc:
                 probability_loss = torch.sum(probability_loss_func(outputs, ema_output)) / args.batch_size
             else:
-                probability_loss = torch.tensor(0.0, device=activations.device)
+                probability_loss = torch.tensor(0.0, device=zero_device)
             
             # batch loss
             if not disable_mrc:
                 batch_sim_loss = torch.sum(batch_sim_loss_func(activations, ema_activations))
             else:
-                batch_sim_loss = torch.tensor(0.0, device=activations.device)
+                batch_sim_loss = torch.tensor(0.0, device=zero_device)
 
             # channel loss
             if not disable_mrc:
                 channel_sim_loss = torch.sum(channel_sim_loss_func(activations, ema_activations))
             else:
-                channel_sim_loss = torch.tensor(0.0, device=activations.device)
+                channel_sim_loss = torch.tensor(0.0, device=zero_device)
 
             base_loss = classification_loss * args.classification_loss_weight
             if not disable_mrc and epoch > 20:
@@ -509,7 +514,7 @@ def trainEncoder(
                 gaussian_prior_loss = gaussian_prior_loss_func(activations, label)
                 base_loss = base_loss + gaussian_prior_loss * args.gaussian_prior_weight
             else:
-                gaussian_prior_loss = torch.tensor(0.0, device=activations.device)
+                gaussian_prior_loss = torch.tensor(0.0, device=zero_device)
 
             if aux_vae is not None and args.use_aux_vae and epoch >= args.aux_vae_start_epoch:
                 aux_in = img if args.aux_vae_input == "image" else activations
@@ -518,17 +523,17 @@ def trainEncoder(
                 kl_loss = -0.5 * torch.mean(1 + logvar - mu.pow(2) - logvar.exp())
                 base_loss = base_loss + recon_loss * args.aux_vae_recon_weight + kl_loss * args.aux_vae_kl_weight
             else:
-                recon_loss = torch.tensor(0.0, device=activations.device)
-                kl_loss = torch.tensor(0.0, device=activations.device)
+                recon_loss = torch.tensor(0.0, device=zero_device)
+                kl_loss = torch.tensor(0.0, device=zero_device)
 
             # KD + LiteVAE student losses
-            kd_logit_loss = torch.tensor(0.0, device=activations.device)
-            kd_feat_loss = torch.tensor(0.0, device=activations.device)
-            kd_struct_loss = torch.tensor(0.0, device=activations.device)
-            lite_recon_loss = torch.tensor(0.0, device=activations.device)
-            lite_kl_loss = torch.tensor(0.0, device=activations.device)
-            lite_ce_loss = torch.tensor(0.0, device=activations.device)
-            lite_acc = torch.tensor(0.0, device=activations.device)
+            kd_logit_loss = torch.tensor(0.0, device=zero_device)
+            kd_feat_loss = torch.tensor(0.0, device=zero_device)
+            kd_struct_loss = torch.tensor(0.0, device=zero_device)
+            lite_recon_loss = torch.tensor(0.0, device=zero_device)
+            lite_kl_loss = torch.tensor(0.0, device=zero_device)
+            lite_ce_loss = torch.tensor(0.0, device=zero_device)
+            lite_acc = torch.tensor(0.0, device=zero_device)
 
             if args.kd_enable and lite_vae is not None and lite_classifier is not None and lite_z is not None:
                 lite_student_feat = _select_lite_feature(lite_mu, lite_z, lite_feature_mode)
@@ -581,6 +586,11 @@ def trainEncoder(
                             kd_struct_loss = F.mse_loss(gram_s, gram_t)
 
                 if args.lite_vae_recon_weight > 0:
+                    if lite_recon is None:
+                        raise RuntimeError(
+                            "lite_vae_recon_weight>0 but student model did not return reconstruction. "
+                            "Enable student decoder or set lite_vae_recon_weight=0."
+                        )
                     lite_recon_loss = lite_recon_loss_func(lite_recon, img)
                 if args.lite_vae_kl_weight > 0:
                     lite_kl_loss = -0.5 * torch.mean(1 + lite_logvar - lite_mu.pow(2) - lite_logvar.exp())
@@ -591,7 +601,7 @@ def trainEncoder(
                     lite_pred = lite_logits.argmax(1)
                     lite_acc = (lite_pred == label).float().mean()
 
-            loss = torch.tensor(0.0, device=activations.device)
+            loss = torch.tensor(0.0, device=zero_device)
             if not kd_only:
                 loss = loss + base_loss
             loss = loss + kd_logit_loss * args.kd_logit_weight

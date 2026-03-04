@@ -314,3 +314,94 @@ class VAVAETeacherEncoder(nn.Module):
             "missing": len(missing),
             "unexpected": len(unexpected),
         }
+
+
+class VAVAEStudentVAE(VAVAETeacherEncoder):
+    """
+    VA-VAE encoder used as student branch with LiteVAE-compatible interface:
+    encode(x) -> mu, logvar, z
+    forward(x) -> mu, logvar, z, recon
+    """
+
+    def __init__(
+        self,
+        in_channels=3,
+        ch=128,
+        ch_mult="1,1,2,2,4",
+        num_res_blocks=2,
+        z_channels=32,
+        attn_levels="4",
+        input_size=256,
+        resize_input=False,
+        pool="avg",
+        feature_from="mu",
+        enable_decoder=False,
+    ):
+        super().__init__(
+            in_channels=in_channels,
+            ch=ch,
+            ch_mult=ch_mult,
+            num_res_blocks=num_res_blocks,
+            z_channels=z_channels,
+            attn_levels=attn_levels,
+            input_size=input_size,
+            resize_input=resize_input,
+            pool=pool,
+            feature_from=feature_from,
+        )
+        self.enable_decoder = bool(enable_decoder)
+        self._ch_mult_tuple = _parse_int_seq(ch_mult, default=(1, 1, 2, 2, 4))
+        self._num_upsamples = max(0, len(self._ch_mult_tuple) - 1)
+        self._latent_h = max(1, int(input_size) // (2 ** self._num_upsamples))
+        self._latent_w = self._latent_h
+        self._decode_channels = int(ch) * int(self._ch_mult_tuple[-1])
+
+        if self.enable_decoder:
+            self.fc_decode = nn.Linear(self.z_channels, self._decode_channels * self._latent_h * self._latent_w)
+            self.decoder = nn.Sequential(
+                nn.ConvTranspose2d(self._decode_channels, self._decode_channels // 2, kernel_size=4, stride=2, padding=1),
+                nn.ReLU(inplace=True),
+                nn.ConvTranspose2d(self._decode_channels // 2, self._decode_channels // 4, kernel_size=4, stride=2, padding=1),
+                nn.ReLU(inplace=True),
+                nn.ConvTranspose2d(self._decode_channels // 4, self._decode_channels // 8, kernel_size=4, stride=2, padding=1),
+                nn.ReLU(inplace=True),
+                nn.ConvTranspose2d(self._decode_channels // 8, in_channels, kernel_size=4, stride=2, padding=1),
+            )
+
+    @staticmethod
+    def reparameterize(mu, logvar):
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return mu + eps * std
+
+    def _pool_map(self, feat_map):
+        if self.pool == "flat":
+            return feat_map.flatten(1)
+        if self.pool == "max":
+            return F.adaptive_max_pool2d(feat_map, (1, 1)).flatten(1)
+        return F.adaptive_avg_pool2d(feat_map, (1, 1)).flatten(1)
+
+    def encode(self, x):
+        if self.resize_input and x.shape[-1] != self.input_size:
+            x = F.interpolate(x, size=(self.input_size, self.input_size), mode="bilinear", align_corners=False)
+        h = self.encoder(x)
+        moments = self.quant_conv(h)
+        mu_map, logvar_map = torch.chunk(moments, 2, dim=1)
+        mu = self._pool_map(mu_map)
+        logvar = self._pool_map(logvar_map)
+        z = self.reparameterize(mu, logvar)
+        return mu, logvar, z
+
+    def decode(self, z):
+        if not self.enable_decoder:
+            return None
+        y = self.fc_decode(z).view(-1, self._decode_channels, self._latent_h, self._latent_w)
+        y = self.decoder(y)
+        if y.shape[-2:] != (self.input_size, self.input_size):
+            y = F.interpolate(y, size=(self.input_size, self.input_size), mode="bilinear", align_corners=False)
+        return y
+
+    def forward(self, x):
+        mu, logvar, z = self.encode(x)
+        recon = self.decode(z)
+        return mu, logvar, z, recon

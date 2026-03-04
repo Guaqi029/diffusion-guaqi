@@ -2,11 +2,10 @@ import os
 import glob
 import json
 import time
-import wandb
 import argparse
 import torch
 import numpy as np
-from models import CreateModel, Linear, LiteVAE
+from models import CreateModel, Linear, LiteVAE, VAVAEStudentVAE
 from data import (
     Transforms,
     ISICDataset,
@@ -18,6 +17,28 @@ from utils.yaml_config_hook import yaml_config_hook
 from torch.utils.data import DataLoader
 from utils import epochVal
 from utils.loss import GCELoss
+
+try:
+    import wandb
+except ImportError:
+    wandb = None
+
+
+def _str2bool(v):
+    if isinstance(v, bool):
+        return v
+    s = str(v).strip().lower()
+    if s in {"1", "true", "t", "yes", "y", "on"}:
+        return True
+    if s in {"0", "false", "f", "no", "n", "off"}:
+        return False
+    raise argparse.ArgumentTypeError(f"Boolean value expected, got: {v}")
+
+
+def _arg_type_from_default(v):
+    if isinstance(v, bool):
+        return _str2bool
+    return type(v)
 
 
 def _sanitize_cuda_alloc_conf():
@@ -45,7 +66,7 @@ def _extract_feature_batch(feature_model, x, feature_source="resnet", lite_featu
     if feature_source == "resnet":
         activations, _ = feature_model(x)
         return activations
-    if feature_source == "lite":
+    if feature_source in ("lite", "vavae"):
         mu, _, z, _ = feature_model(x)
         if lite_feature_mode == "z":
             return z
@@ -351,7 +372,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     yaml_config = yaml_config_hook("./config/configs.yaml")
     for k, v in yaml_config.items():
-        parser.add_argument(f"--{k}", default=v, type=type(v))
+        parser.add_argument(f"--{k}", default=v, type=_arg_type_from_default(v))
 
     parser.add_argument('--debug', action="store_true", help='debug mode(disable wandb)')
     parser.add_argument('--log_file', type=str, default="", help='write debug logs to a local file')
@@ -371,6 +392,10 @@ if __name__ == "__main__":
         _write_local_log(log_f, f"Stage2 start: {time.strftime('%Y-%m-%d %H:%M:%S')}")
 
     if not args.debug:
+        if wandb is None:
+            raise ModuleNotFoundError(
+                "wandb is not installed. Install it or run with --debug."
+            )
         wandb.login(key="[Your wandb key here]")
 
         config = dict()
@@ -416,10 +441,10 @@ if __name__ == "__main__":
     # Load stage1 feature extractor (ResNet or LiteVAE)
     n_classes = train_dataset.n_class
     feature_source = str(getattr(args, "stage2_feature_source", "resnet")).lower()
-    if feature_source not in ("resnet", "lite"):
-        raise ValueError("stage2_feature_source must be one of: resnet | lite")
-    if feature_source == "lite":
-        print(f"[Stage2] feature_source=lite, backbone={args.backbone} is ignored.")
+    if feature_source not in ("resnet", "lite", "vavae"):
+        raise ValueError("stage2_feature_source must be one of: resnet | lite | vavae")
+    if feature_source in ("lite", "vavae"):
+        print(f"[Stage2] feature_source={feature_source}, backbone={args.backbone} is ignored.")
 
     source_teacher_run = args.teacher_run_name if args.teacher_run_name else args.run_name
     source_student_run = args.student_run_name if args.student_run_name else args.run_name
@@ -451,7 +476,7 @@ if __name__ == "__main__":
         feature_model.load_state_dict(torch.load(backbone_ckpt, map_location=args.device))
         loaded_feature_ckpt = backbone_ckpt
         feature_dim = feature_model.n_features
-    else:
+    elif feature_source == "lite":
         feature_model = LiteVAE(
             image_size=args.image_size,
             in_channels=3,
@@ -468,6 +493,28 @@ if __name__ == "__main__":
         feature_model.load_state_dict(torch.load(lite_ckpt, map_location=args.device))
         loaded_feature_ckpt = lite_ckpt
         feature_dim = args.lite_vae_latent_dim
+    else:
+        feature_model = VAVAEStudentVAE(
+            in_channels=3,
+            ch=int(getattr(args, "vavae_student_ch", getattr(args, "vavae_teacher_ch", 128))),
+            ch_mult=getattr(args, "vavae_student_ch_mult", getattr(args, "vavae_teacher_ch_mult", "1,1,2,2,4")),
+            num_res_blocks=int(getattr(args, "vavae_student_num_res_blocks", getattr(args, "vavae_teacher_num_res_blocks", 2))),
+            z_channels=int(getattr(args, "vavae_student_latent_dim", getattr(args, "vavae_teacher_latent_dim", 32))),
+            attn_levels=getattr(args, "vavae_student_attn_levels", getattr(args, "vavae_teacher_attn_levels", "4")),
+            input_size=int(getattr(args, "vavae_student_input_size", args.image_size)),
+            resize_input=bool(getattr(args, "vavae_student_resize_input", False)),
+            pool=str(getattr(args, "vavae_student_pool", "avg")),
+            feature_from=str(getattr(args, "vavae_student_feature_from", "mu")),
+            enable_decoder=bool(getattr(args, "vavae_student_enable_decoder", False)),
+        ).to(args.device)
+        vavae_ckpt = _resolve_checkpoint_path(args.lite_vae_resume_path, args.checkpoints_root, source_student_run)
+        if not vavae_ckpt:
+            vavae_ckpt = _auto_find_checkpoint(args.checkpoints_root, source_student_run, "litevae_latest.pth", "litevae")
+        if not vavae_ckpt:
+            raise FileNotFoundError("Stage2 could not find VA-VAE student checkpoint for Stage1 output.")
+        feature_model.load_state_dict(torch.load(vavae_ckpt, map_location=args.device))
+        loaded_feature_ckpt = vavae_ckpt
+        feature_dim = int(getattr(args, "vavae_student_latent_dim", getattr(args, "vavae_teacher_latent_dim", 32)))
 
     if bool(getattr(args, "stage2_enable_estep", True)):
         feature_optimizer = torch.optim.SGD(
@@ -542,6 +589,9 @@ if __name__ == "__main__":
                 stage1_gaussian_path = cand
                 break
 
+    metric_names = ("acc", "f1", "auc", "bac", "sens", "spec")
+    best_val_by_metric = {m: {"value": -1.0, "epoch": -1} for m in metric_names}
+    best_test_by_metric = {m: {"value": -1.0, "epoch": -1} for m in metric_names}
     best_val_acc = -1.0
     best_test_acc = -1.0
     train_X = train_y = test_X = test_y = val_X = val_y = None
@@ -736,12 +786,22 @@ if __name__ == "__main__":
                                              'Balanced Accuracy': val_bac,
                                              'Sensitivity': val_sens,
                                              'Specificity': val_spec}})
-        _log_metrics_local(log_f, f"epoch {epoch} test", {
+        test_metrics = {
             "acc": test_acc, "f1": test_f1, "auc": test_auc, "bac": test_bac, "sens": test_sens, "spec": test_spec
-        })
-        _log_metrics_local(log_f, f"epoch {epoch} val", {
+        }
+        val_metrics = {
             "acc": val_acc, "f1": val_f1, "auc": val_auc, "bac": val_bac, "sens": val_sens, "spec": val_spec
-        })
+        }
+        _log_metrics_local(log_f, f"epoch {epoch} test", test_metrics)
+        _log_metrics_local(log_f, f"epoch {epoch} val", val_metrics)
+
+        for m in metric_names:
+            if val_metrics[m] > best_val_by_metric[m]["value"]:
+                best_val_by_metric[m]["value"] = float(val_metrics[m])
+                best_val_by_metric[m]["epoch"] = int(epoch)
+            if test_metrics[m] > best_test_by_metric[m]["value"]:
+                best_test_by_metric[m]["value"] = float(test_metrics[m])
+                best_test_by_metric[m]["epoch"] = int(epoch)
 
         if val_acc > best_val_acc:
             best_val_acc = val_acc
@@ -749,8 +809,10 @@ if __name__ == "__main__":
             torch.save(feature_model.state_dict(), os.path.join(args.checkpoints, "stage2_best_feature_extractor.pth"))
             if feature_source == "resnet":
                 torch.save(feature_model.state_dict(), os.path.join(args.checkpoints, "stage2_best_backbone.pth"))
-            else:
+            elif feature_source == "lite":
                 torch.save(feature_model.state_dict(), os.path.join(args.checkpoints, "stage2_best_litevae.pth"))
+            else:
+                torch.save(feature_model.state_dict(), os.path.join(args.checkpoints, "stage2_best_vavae.pth"))
         if test_acc > best_test_acc:
             best_test_acc = test_acc
         print(
@@ -759,6 +821,17 @@ if __name__ == "__main__":
         if log_f is not None:
             _write_local_log(log_f, f"Epoch [{epoch}/{args.stage2_epochs}] Loss={loss_epoch / len(arr_train_loader):.6f} Acc={acc_epoch / len(arr_train_loader):.6f}")
 
+    summary_val = ", ".join(
+        [f"{m}={best_val_by_metric[m]['value']:.6f}@epoch{best_val_by_metric[m]['epoch']}" for m in metric_names]
+    )
+    summary_test = ", ".join(
+        [f"{m}={best_test_by_metric[m]['value']:.6f}@epoch{best_test_by_metric[m]['epoch']}" for m in metric_names]
+    )
+    print(f"Best validation metrics: {summary_val}")
+    print(f"Best test metrics: {summary_test}")
+
     if log_f is not None:
         _write_local_log(log_f, f"Best val acc={best_val_acc:.6f}, best test acc={best_test_acc:.6f}")
+        _write_local_log(log_f, f"Best validation metrics: {summary_val}")
+        _write_local_log(log_f, f"Best test metrics: {summary_test}")
         log_f.close()

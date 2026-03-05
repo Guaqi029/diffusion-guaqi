@@ -197,6 +197,13 @@ stage2_virtual_min_per_class: 0
 stage2_virtual_max_per_class: -1
 stage2_virtual_max_ratio: 1.0  # -1 disable; else cap total virtual <= ratio * real
 stage2_virtual_counts_path: ""  # optional json: list or {class_id: count}
+stage2_enable_aas: False
+stage2_aas_gamma: 1.0
+stage2_aas_ema: 0.5
+stage2_aas_total_source: "base"  # base | current
+stage2_aas_follow_base_mask: True
+stage2_aas_allow_override_counts: False
+stage2_aas_log_per_class: True
 
 stage2_gaussian_covariance: "diag"  # diag | full
 stage2_gaussian_var_floor: 0.0001

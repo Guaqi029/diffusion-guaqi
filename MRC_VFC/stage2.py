@@ -368,6 +368,117 @@ def _build_class_weights_np(
     return weights.astype(np.float32), counts.astype(np.int64)
 
 
+def _per_class_accuracy(model, data_loader, device, num_classes):
+    training = model.training
+    model.eval()
+    total = np.zeros(num_classes, dtype=np.int64)
+    correct = np.zeros(num_classes, dtype=np.int64)
+    with torch.no_grad():
+        for x, y in data_loader:
+            x = x.to(device)
+            y = y.to(device)
+            logits = model(x)
+            if isinstance(logits, tuple):
+                _, logits = logits
+            pred = logits.argmax(dim=1)
+
+            y_cpu = y.detach().cpu()
+            pred_cpu = pred.detach().cpu()
+            total += torch.bincount(y_cpu, minlength=num_classes).numpy()
+            hit = (pred_cpu == y_cpu)
+            if hit.any():
+                correct += torch.bincount(y_cpu[hit], minlength=num_classes).numpy()
+    model.train(training)
+    acc = correct.astype(np.float32) / np.maximum(total, 1).astype(np.float32)
+    return acc, total
+
+
+def _compute_aas_class_sizes(
+    base_class_sizes,
+    per_class_acc,
+    total_target,
+    gamma=1.0,
+    follow_base_mask=True,
+    min_size=0,
+    max_size=-1,
+    max_virtual_ratio=-1.0,
+    real_total=0,
+    ema_prev=None,
+    ema_momentum=0.0,
+):
+    base = np.asarray(base_class_sizes, dtype=np.int64)
+    acc = np.asarray(per_class_acc, dtype=np.float32)
+    acc = np.clip(acc, 0.0, 1.0)
+    hard = np.power(1.0 - acc, float(gamma)).astype(np.float32)
+
+    if follow_base_mask:
+        mask = (base > 0).astype(np.float32)
+        hard = hard * mask
+    else:
+        mask = np.ones_like(hard, dtype=np.float32)
+
+    if hard.sum() <= 0:
+        hard = mask.copy()
+        if hard.sum() <= 0:
+            hard = np.ones_like(hard, dtype=np.float32)
+
+    weights = hard / hard.sum()
+    target = int(max(0, total_target))
+    sizes = np.floor(weights * target).astype(np.int64)
+    remainder = target - int(sizes.sum())
+    if remainder > 0:
+        order = np.argsort(-weights)
+        for idx in order[:remainder]:
+            sizes[idx] += 1
+
+    if int(min_size) > 0:
+        if follow_base_mask:
+            sizes = np.where(base > 0, np.maximum(sizes, int(min_size)), sizes)
+        else:
+            sizes = np.maximum(sizes, int(min_size))
+    if int(max_size) > 0:
+        sizes = np.minimum(sizes, int(max_size))
+    if follow_base_mask:
+        sizes = np.where(base > 0, sizes, 0)
+
+    if float(max_virtual_ratio) > 0 and int(real_total) > 0:
+        max_total = int(real_total * float(max_virtual_ratio))
+        cur_total = int(sizes.sum())
+        if cur_total > max_total and cur_total > 0:
+            scale = max_total / float(cur_total)
+            sizes = np.floor(sizes.astype(np.float64) * scale).astype(np.int64)
+
+    sizes_raw = sizes.astype(np.int64).copy()
+    ema_active = False
+    ema_index = 0.0
+    ema_l1_to_raw = 0.0
+    ema = float(ema_momentum)
+    if ema_prev is not None and 0.0 < ema < 1.0:
+        prev = np.asarray(ema_prev, dtype=np.float32)
+        smoothed = np.round(prev * ema + sizes.astype(np.float32) * (1.0 - ema)).astype(np.int64)
+        denom = float(np.mean(np.abs(prev - sizes_raw.astype(np.float32))))
+        numer = float(np.mean(np.abs(smoothed.astype(np.float32) - sizes_raw.astype(np.float32))))
+        ema_active = True
+        ema_l1_to_raw = numer
+        if denom > 1e-8:
+            # 该值越接近1，说明EMA平滑影响越大；越接近0，说明接近原始AAS分配。
+            ema_index = numer / denom
+        else:
+            ema_index = 0.0
+        sizes = smoothed
+
+    debug = {
+        "ema_active": int(ema_active),
+        "ema_momentum": float(ema),
+        "ema_index": float(ema_index),
+        "ema_l1_to_raw": float(ema_l1_to_raw),
+        "raw_sizes": sizes_raw.astype(np.int64),
+        "smoothed_sizes": sizes.astype(np.int64),
+    }
+
+    return sizes.astype(np.int64), hard.astype(np.float32), debug
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     yaml_config = yaml_config_hook("./config/configs.yaml")
@@ -596,6 +707,32 @@ if __name__ == "__main__":
     best_test_acc = -1.0
     train_X = train_y = test_X = test_y = val_X = val_y = None
 
+    stage2_enable_aas = bool(getattr(args, "stage2_enable_aas", False))
+    stage2_aas_gamma = float(getattr(args, "stage2_aas_gamma", 1.0))
+    stage2_aas_ema = float(getattr(args, "stage2_aas_ema", 0.5))
+    stage2_aas_total_source = str(getattr(args, "stage2_aas_total_source", "base")).lower()
+    if stage2_aas_total_source not in {"base", "current"}:
+        raise ValueError("stage2_aas_total_source must be one of: base | current")
+    stage2_aas_follow_base_mask = bool(getattr(args, "stage2_aas_follow_base_mask", True))
+    stage2_aas_allow_override_counts = bool(getattr(args, "stage2_aas_allow_override_counts", False))
+    stage2_aas_log_per_class = bool(getattr(args, "stage2_aas_log_per_class", True))
+    aas_next_class_sizes = None
+    aas_prev_applied_sizes = None
+    if stage2_enable_aas and class_sizes_override is not None and not stage2_aas_allow_override_counts:
+        _write_local_log(
+            log_f,
+            "AAS disabled because stage2_virtual_counts_path is provided and stage2_aas_allow_override_counts=False.",
+        )
+        stage2_enable_aas = False
+    _write_local_log(
+        log_f,
+        (
+            f"stage2_enable_aas={stage2_enable_aas}, stage2_aas_gamma={stage2_aas_gamma}, "
+            f"stage2_aas_ema={stage2_aas_ema}, stage2_aas_total_source={stage2_aas_total_source}, "
+            f"stage2_aas_follow_base_mask={stage2_aas_follow_base_mask}"
+        ),
+    )
+
     for epoch in range(args.stage2_epochs):
         need_refresh_features = (
             train_X is None
@@ -663,11 +800,13 @@ if __name__ == "__main__":
         train_y_for_cls = train_y
         virtual_mode = getattr(args, "stage2_virtual_mode", "uniform")
         virtual_enabled = bool(getattr(args, "stage2_virtual_enable", True))
+        class_sizes = None
+        base_class_sizes = None
         if virtual_enabled:
             if class_sizes_override is not None:
-                class_sizes = class_sizes_override
+                base_class_sizes = class_sizes_override.copy()
             else:
-                class_sizes = compute_virtual_class_sizes(
+                base_class_sizes = compute_virtual_class_sizes(
                     train_y,
                     n_classes,
                     uniform_size=args.virtual_size,
@@ -677,6 +816,12 @@ if __name__ == "__main__":
                     min_size=int(getattr(args, "stage2_virtual_min_per_class", 0)),
                     max_size=int(getattr(args, "stage2_virtual_max_per_class", -1)),
                 )
+            if stage2_enable_aas and aas_next_class_sizes is not None:
+                class_sizes = aas_next_class_sizes.copy()
+                aas_source = "aas_feedback"
+            else:
+                class_sizes = base_class_sizes.copy()
+                aas_source = "base"
             max_virtual_ratio = float(getattr(args, "stage2_virtual_max_ratio", -1.0))
             if max_virtual_ratio > 0:
                 max_total = int(len(train_y) * max_virtual_ratio)
@@ -699,6 +844,7 @@ if __name__ == "__main__":
                 "train_total": int(len(train_X_for_cls)),
                 "merge_real": int(merge_real),
                 "gaussian_source": gaussian_source,
+                "class_size_source": aas_source,
             })
         else:
             _log_metrics_local(log_f, f"epoch {epoch} virtual", {
@@ -706,6 +852,7 @@ if __name__ == "__main__":
                 "train_total": int(len(train_X_for_cls)),
                 "merge_real": 1,
                 "gaussian_source": gaussian_source,
+                "class_size_source": "none",
             })
 
         arr_train_loader, arr_test_loader, arr_val_loader = create_data_loaders_from_arrays(
@@ -802,6 +949,84 @@ if __name__ == "__main__":
             if test_metrics[m] > best_test_by_metric[m]["value"]:
                 best_test_by_metric[m]["value"] = float(test_metrics[m])
                 best_test_by_metric[m]["epoch"] = int(epoch)
+
+        if virtual_enabled and stage2_enable_aas and base_class_sizes is not None:
+            per_class_acc, per_class_total = _per_class_accuracy(
+                classifier_model,
+                arr_val_loader,
+                args.device,
+                n_classes,
+            )
+            total_target = int(base_class_sizes.sum())
+            if stage2_aas_total_source == "current" and class_sizes is not None:
+                total_target = int(class_sizes.sum())
+
+            aas_next_class_sizes, aas_hardness, aas_ema_debug = _compute_aas_class_sizes(
+                base_class_sizes=base_class_sizes,
+                per_class_acc=per_class_acc,
+                total_target=total_target,
+                gamma=stage2_aas_gamma,
+                follow_base_mask=stage2_aas_follow_base_mask,
+                min_size=int(getattr(args, "stage2_virtual_min_per_class", 0)),
+                max_size=int(getattr(args, "stage2_virtual_max_per_class", -1)),
+                max_virtual_ratio=float(getattr(args, "stage2_virtual_max_ratio", -1.0)),
+                real_total=int(len(train_y)),
+                ema_prev=aas_prev_applied_sizes,
+                ema_momentum=stage2_aas_ema,
+            )
+            aas_prev_applied_sizes = aas_next_class_sizes.copy()
+            hardest_cls = int(np.argmax(aas_hardness))
+            _log_metrics_local(
+                log_f,
+                f"epoch {epoch} aas",
+                {
+                    "hardest_cls": hardest_cls,
+                    "hardest_score": float(aas_hardness[hardest_cls]),
+                    "next_virtual_total": int(aas_next_class_sizes.sum()),
+                    "gamma": float(stage2_aas_gamma),
+                    "ema_momentum": float(aas_ema_debug["ema_momentum"]),
+                    "ema_active": int(aas_ema_debug["ema_active"]),
+                    "ema_index": float(aas_ema_debug["ema_index"]),
+                },
+            )
+            print(
+                "epoch {} aas: gamma={:.3f}, ema_momentum={:.3f}, ema_active={}, ema_index={:.4f}".format(
+                    epoch,
+                    float(stage2_aas_gamma),
+                    float(aas_ema_debug["ema_momentum"]),
+                    int(aas_ema_debug["ema_active"]),
+                    float(aas_ema_debug["ema_index"]),
+                )
+            )
+            if stage2_aas_log_per_class:
+                _write_local_log(
+                    log_f,
+                    "epoch {} aas_per_class_acc={}".format(
+                        epoch,
+                        [round(float(x), 4) for x in per_class_acc.tolist()],
+                    ),
+                )
+                _write_local_log(
+                    log_f,
+                    "epoch {} aas_per_class_val_count={}".format(
+                        epoch,
+                        [int(x) for x in per_class_total.tolist()],
+                    ),
+                )
+                _write_local_log(
+                    log_f,
+                    "epoch {} aas_raw_class_sizes={}".format(
+                        epoch,
+                        [int(x) for x in aas_ema_debug["raw_sizes"].tolist()],
+                    ),
+                )
+                _write_local_log(
+                    log_f,
+                    "epoch {} aas_next_class_sizes={}".format(
+                        epoch,
+                        [int(x) for x in aas_next_class_sizes.tolist()],
+                    ),
+                )
 
         if val_acc > best_val_acc:
             best_val_acc = val_acc

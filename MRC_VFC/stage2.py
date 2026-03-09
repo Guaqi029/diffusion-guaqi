@@ -791,10 +791,31 @@ if __name__ == "__main__":
                 var_floor=float(getattr(args, "stage2_gaussian_var_floor", 1e-4)),
                 full_min_samples=int(getattr(args, "stage2_gaussian_full_min_samples", 32)),
                 full_shrinkage=float(getattr(args, "stage2_gaussian_full_shrinkage", 0.1)),
+                calib_enable=bool(getattr(args, "stage2_gaussian_calib_enable", False)),
+                calib_tau=float(getattr(args, "stage2_gaussian_calib_tau", 100.0)),
+                calib_head_min_count=int(getattr(args, "stage2_gaussian_calib_head_min_count", 0)),
             )
             gaussian_source = "fit"
             if save_gaussian:
                 _save_gaussian_stats(stats_path, gaussian_stats)
+            calib_info = gaussian_stats.get("calibration", {})
+            if bool(calib_info.get("enabled", False)):
+                alpha = calib_info.get("alpha", None)
+                alpha_min = float(np.min(alpha)) if alpha is not None else 0.0
+                alpha_max = float(np.max(alpha)) if alpha is not None else 0.0
+                _write_local_log(
+                    log_f,
+                    (
+                        "gaussian calibration: enabled=True, tau={:.3f}, head_min_count={}, "
+                        "prior_source={}, alpha_min={:.4f}, alpha_max={:.4f}"
+                    ).format(
+                        float(calib_info.get("tau", 0.0)),
+                        int(calib_info.get("head_min_count", 0)),
+                        str(calib_info.get("prior_source", "none")),
+                        alpha_min,
+                        alpha_max,
+                    ),
+                )
 
         train_X_for_cls = train_X
         train_y_for_cls = train_y

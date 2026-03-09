@@ -50,6 +50,9 @@ def fit_class_gaussians(
     var_floor=1e-4,
     full_min_samples=32,
     full_shrinkage=0.1,
+    calib_enable=False,
+    calib_tau=100.0,
+    calib_head_min_count=0,
 ):
     """
     Fit class-conditional Gaussian stats from feature matrix x.
@@ -61,6 +64,7 @@ def fit_class_gaussians(
     feat_dim = x.shape[1]
 
     means = np.zeros((class_num, feat_dim), dtype=np.float32)
+    counts = np.bincount(y, minlength=class_num).astype(np.int64)
     if covariance_type == "diag":
         cov_diag = np.zeros((class_num, feat_dim), dtype=np.float32)
         cov_full = None
@@ -103,10 +107,47 @@ def fit_class_gaussians(
             covariance = covariance + np.eye(feat_dim, dtype=np.float32) * var_floor
             cov_full[cls] = covariance.astype(np.float32)
 
+    calibration = {
+        "enabled": bool(calib_enable),
+        "tau": float(calib_tau),
+        "head_min_count": int(calib_head_min_count) if int(calib_head_min_count) > 0 else int(max(1, calib_tau)),
+        "prior_source": "none",
+    }
+    if bool(calib_enable):
+        tau = float(max(calib_tau, 1.0))
+        head_min_count = int(calib_head_min_count)
+        if head_min_count <= 0:
+            head_min_count = int(round(tau))
+        head_mask = counts >= head_min_count
+        if covariance_type == "diag":
+            prior = np.mean(cov_diag[head_mask], axis=0) if np.any(head_mask) else np.mean(cov_diag, axis=0)
+            prior = np.maximum(prior.astype(np.float32), var_floor)
+            alpha = np.clip(counts.astype(np.float32) / tau, 0.0, 1.0)
+            cov_diag = alpha[:, None] * cov_diag + (1.0 - alpha)[:, None] * prior[None, :]
+            cov_diag = np.maximum(cov_diag.astype(np.float32), var_floor)
+        else:
+            prior = np.mean(cov_full[head_mask], axis=0) if np.any(head_mask) else np.mean(cov_full, axis=0)
+            prior = prior.astype(np.float32)
+            alpha = np.clip(counts.astype(np.float32) / tau, 0.0, 1.0)
+            for cls in range(class_num):
+                a = float(alpha[cls])
+                cov_full[cls] = (
+                    a * cov_full[cls].astype(np.float32) + (1.0 - a) * prior
+                ).astype(np.float32)
+                # keep diagonal numerically safe after calibration
+                diag = np.diag(cov_full[cls]).copy()
+                diag = np.maximum(diag, var_floor)
+                np.fill_diagonal(cov_full[cls], diag)
+
+        calibration["prior_source"] = "head" if np.any(head_mask) else "all_fallback"
+        calibration["alpha"] = alpha.astype(np.float32)
+
     stats = {
         "covariance_type": covariance_type,
         "means": means,
         "var_floor": float(var_floor),
+        "class_counts": counts,
+        "calibration": calibration,
     }
     if cov_diag is not None:
         stats["cov_diag"] = cov_diag

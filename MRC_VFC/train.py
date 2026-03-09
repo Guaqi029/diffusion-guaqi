@@ -1,13 +1,14 @@
 # train the encoder
 import os
 import time
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from utils.loss import ProbabilityLoss, BatchLoss, ChannelLoss, GaussianPriorLoss
+from utils.loss import ProbabilityLoss, BatchLoss, ChannelLoss, GaussianPriorLoss, ClassBalancedLoss
 import torch.distributed as dist
 from utils import ramps, epochVal
-from utils.metrics import compute_avg_metrics
+from utils.metrics import compute_avg_metrics, compute_per_class_metrics
 
 try:
     import wandb
@@ -27,6 +28,35 @@ def _write_local_log(log_f, msg):
         return
     log_f.write(msg + "\n")
     log_f.flush()
+
+
+def _fmt_float(v, digits=6):
+    if v is None:
+        return "nan"
+    if isinstance(v, float) and math.isnan(v):
+        return "nan"
+    return f"{float(v):.{digits}f}"
+
+
+def _format_per_class_lines(tag, per_class_metrics):
+    lines = []
+    if per_class_metrics is None:
+        return lines
+    for row in per_class_metrics:
+        lines.append(
+            (
+                f"{tag}_cls{int(row['class_id'])}: "
+                f"n={int(row['support'])}, "
+                f"acc={_fmt_float(row['acc'], 6)}, "
+                f"f1={_fmt_float(row['f1'], 6)}, "
+                f"auc={_fmt_float(row['auc'], 6)}, "
+                f"bac={_fmt_float(row['bac'], 6)}, "
+                f"sens={_fmt_float(row['sens'], 6)}, "
+                f"spec={_fmt_float(row['spec'], 6)}, "
+                f"prec={_fmt_float(row['precision'], 6)}"
+            )
+        )
+    return lines
 
 
 def _get_state_dict(model):
@@ -197,15 +227,30 @@ def trainEncoder(
     if model is not None:
         model.train()
     train_loader, val_loader, test_loader = dataloader
-    class_weights = None
+    labels = None
+    if hasattr(train_loader.dataset, "get_labels"):
+        labels = train_loader.dataset.get_labels()
+    elif hasattr(train_loader.dataset, "labels"):
+        labels = train_loader.dataset.labels
+
     class_counts = None
-    if bool(getattr(args, "use_class_weight", False)):
-        labels = None
-        if hasattr(train_loader.dataset, "get_labels"):
-            labels = train_loader.dataset.get_labels()
-        elif hasattr(train_loader.dataset, "labels"):
-            labels = train_loader.dataset.labels
-        if labels is not None:
+    if labels is not None:
+        labels_t = torch.as_tensor(labels, dtype=torch.long)
+        class_counts = torch.bincount(labels_t, minlength=args.num_classes)
+
+    class_weights = None
+    ce_weighted_loss_func = None
+    cb_loss_func = None
+
+    stage1_cls_loss_type = str(getattr(args, "stage1_cls_loss_type", "ce")).lower()
+    if stage1_cls_loss_type in ("crossentropy", "cross_entropy"):
+        stage1_cls_loss_type = "ce"
+    if stage1_cls_loss_type not in ("ce", "cb_ce", "cb_focal"):
+        raise ValueError("stage1_cls_loss_type must be one of: ce | cb_ce | cb_focal")
+
+    # Build the default loss path first (kept for backward compatibility).
+    if stage1_cls_loss_type == "ce":
+        if bool(getattr(args, "use_class_weight", False)) and labels is not None:
             class_weights, class_counts = _build_class_weights(
                 labels,
                 args.num_classes,
@@ -215,10 +260,64 @@ def trainEncoder(
                 eps=float(getattr(args, "class_weight_eps", 1e-6)),
             )
             class_weights = class_weights.to(args.device)
-    classification_loss_func = nn.CrossEntropyLoss(weight=class_weights)
+        ce_weighted_loss_func = nn.CrossEntropyLoss(weight=class_weights)
+        classification_loss_func = ce_weighted_loss_func
+    else:
+        if class_counts is None:
+            raise RuntimeError(
+                "stage1_cls_loss_type is CB-based, but class labels are unavailable from train dataset."
+            )
+        cb_mode = "crossentropy" if stage1_cls_loss_type == "cb_ce" else "focal"
+        cb_loss_func = ClassBalancedLoss(
+            samples_per_cls=class_counts.tolist(),
+            no_of_classes=args.num_classes,
+            beta=float(getattr(args, "cb_beta", 0.9999)),
+            loss_type=cb_mode,
+            focal_gamma=float(getattr(args, "cb_focal_gamma", 2.0)),
+        ).to(args.device)
+        classification_loss_func = cb_loss_func
+
+    # DRW: first use plain CE, then switch to a re-weighted target loss.
+    drw_enable = bool(getattr(args, "stage1_drw_enable", False))
+    drw_start_epoch = int(getattr(args, "stage1_drw_start_epoch", 60))
+    drw_target_loss_type = str(getattr(args, "stage1_drw_target_loss_type", stage1_cls_loss_type)).lower()
+    drw_warmup_use_weighted_ce = bool(getattr(args, "stage1_drw_warmup_use_weighted_ce", True))
+    if drw_target_loss_type in ("crossentropy", "cross_entropy"):
+        drw_target_loss_type = "cb_ce"
+    if drw_target_loss_type not in ("ce", "cb_ce", "cb_focal"):
+        raise ValueError("stage1_drw_target_loss_type must be one of: ce | cb_ce | cb_focal")
+    ce_plain_loss_func = nn.CrossEntropyLoss()
+    if drw_warmup_use_weighted_ce and ce_weighted_loss_func is not None:
+        drw_warmup_loss_func = ce_weighted_loss_func
+        drw_warmup_loss_name = "weighted_ce"
+    else:
+        drw_warmup_loss_func = ce_plain_loss_func
+        drw_warmup_loss_name = "ce"
+    drw_target_loss_func = None
+    if drw_enable:
+        if drw_target_loss_type == "ce":
+            drw_target_loss_func = ce_weighted_loss_func if ce_weighted_loss_func is not None else nn.CrossEntropyLoss()
+        else:
+            if class_counts is None:
+                raise RuntimeError(
+                    "DRW target loss is CB-based, but class labels are unavailable from train dataset."
+                )
+            cb_mode = "crossentropy" if drw_target_loss_type == "cb_ce" else "focal"
+            drw_target_loss_func = ClassBalancedLoss(
+                samples_per_cls=class_counts.tolist(),
+                no_of_classes=args.num_classes,
+                beta=float(getattr(args, "cb_beta", 0.9999)),
+                loss_type=cb_mode,
+                focal_gamma=float(getattr(args, "cb_focal_gamma", 2.0)),
+            ).to(args.device)
+
     lite_feature_mode = getattr(args, "lite_student_feature_mode", "mu")
     mix_feature_mode = getattr(args, "mix_lite_feature_mode", lite_feature_mode)
     show_teacher_metrics = bool(getattr(args, "show_teacher_metrics", False))
+    stage1_log_per_class_metrics = bool(getattr(args, "stage1_log_per_class_metrics", False))
+    stage1_log_per_class_in_train = bool(getattr(args, "stage1_log_per_class_in_train", False))
+    per_class_on_eval_only = stage1_log_per_class_metrics
+    per_class_on_train_eval = stage1_log_per_class_metrics and stage1_log_per_class_in_train
     grad_accum_steps = max(1, int(getattr(args, "grad_accum_steps", 1)))
     need_lite_recon_forward = float(getattr(args, "lite_vae_recon_weight", 0.0)) > 0.0
     cur_lr = args.lr
@@ -239,7 +338,19 @@ def trainEncoder(
     if kd_struct_type not in ("gram", "cka"):
         raise ValueError("kd_struct_type must be one of: gram | cka")
     if args.rank == 0:
-        if class_weights is not None and class_counts is not None:
+        _write_local_log(log_f, f"stage1_cls_loss_type={stage1_cls_loss_type}")
+        if stage1_cls_loss_type in ("cb_ce", "cb_focal") and cb_loss_func is not None and class_counts is not None:
+            cb_weights = cb_loss_func.weights.detach().cpu().tolist()
+            _write_local_log(
+                log_f,
+                "class_balanced enabled: counts={}, weights={}, beta={}, focal_gamma={}".format(
+                    class_counts.tolist(),
+                    [round(float(x), 6) for x in cb_weights],
+                    float(getattr(args, "cb_beta", 0.9999)),
+                    float(getattr(args, "cb_focal_gamma", 2.0)),
+                ),
+            )
+        elif class_weights is not None and class_counts is not None:
             _write_local_log(
                 log_f,
                 "class_weight enabled: counts={}, weights={}".format(
@@ -249,6 +360,28 @@ def trainEncoder(
             )
         else:
             _write_local_log(log_f, "class_weight disabled")
+        _write_local_log(
+            log_f,
+            "drw_enable={}, drw_start_epoch={}, drw_target_loss_type={}, drw_warmup_use_weighted_ce={}".format(
+                drw_enable,
+                drw_start_epoch,
+                drw_target_loss_type,
+                drw_warmup_use_weighted_ce,
+            ),
+        )
+        if drw_enable and drw_target_loss_type in ("cb_ce", "cb_focal") and drw_target_loss_func is not None:
+            drw_weights = drw_target_loss_func.weights.detach().cpu().tolist()
+            _write_local_log(
+                log_f,
+                "drw_target_class_balanced weights={}".format(
+                    [round(float(x), 6) for x in drw_weights]
+                ),
+            )
+        _write_local_log(
+            log_f,
+            f"stage1_log_per_class_metrics={stage1_log_per_class_metrics}, "
+            f"stage1_log_per_class_in_train={stage1_log_per_class_in_train}",
+        )
         _write_local_log(
             log_f,
             f"kd schedule: feat_start={kd_feat_start_epoch}, struct_start={kd_struct_start_epoch}, struct_type={kd_struct_type}",
@@ -265,7 +398,7 @@ def trainEncoder(
         _write_local_log(log_f, f"lite_feature_mode={lite_feature_mode}, mix_feature_mode={mix_feature_mode}")
         _write_local_log(log_f, f"show_teacher_metrics={show_teacher_metrics}")
         _write_local_log(log_f, f"grad_accum_steps={grad_accum_steps}, need_lite_recon_forward={need_lite_recon_forward}")
-    def _epoch_val_lite(lite_vae, lite_classifier, data_loader):
+    def _epoch_val_lite(lite_vae, lite_classifier, data_loader, return_per_class=False):
         if lite_vae is None or lite_classifier is None:
             return None
         training_vae = lite_vae.training
@@ -282,11 +415,16 @@ def trainEncoder(
                 groundTruth = torch.cat((groundTruth, label))
                 activations = torch.cat((activations, logits))
         acc, f1, auc, bac, sens, spec = compute_avg_metrics(groundTruth, activations)
+        per_class = None
+        if return_per_class:
+            per_class = compute_per_class_metrics(groundTruth, activations, num_classes=args.num_classes)
         lite_vae.train(training_vae)
         lite_classifier.train(training_cls)
+        if return_per_class:
+            return acc, f1, auc, bac, sens, spec, per_class
         return acc, f1, auc, bac, sens, spec
 
-    def _epoch_val_mix(model, lite_vae, kd_feat_proj, data_loader, alpha):
+    def _epoch_val_mix(model, lite_vae, kd_feat_proj, data_loader, alpha, return_per_class=False):
         if lite_vae is None:
             return None
         training_model = model.training
@@ -313,18 +451,33 @@ def trainEncoder(
                 groundTruth = torch.cat((groundTruth, label))
                 activations = torch.cat((activations, logits))
         acc, f1, auc, bac, sens, spec = compute_avg_metrics(groundTruth, activations)
+        per_class = None
+        if return_per_class:
+            per_class = compute_per_class_metrics(groundTruth, activations, num_classes=args.num_classes)
         model.train(training_model)
         lite_vae.train(training_vae)
+        if return_per_class:
+            return acc, f1, auc, bac, sens, spec, per_class
         return acc, f1, auc, bac, sens, spec
 
     if args.lite_eval_only:
         if args.rank == 0:
             if args.lite_eval_enable and args.lite_eval_use_classifier and lite_vae is not None and lite_classifier is not None:
-                lite_val = _epoch_val_lite(lite_vae, lite_classifier, val_loader)
-                lite_test = _epoch_val_lite(lite_vae, lite_classifier, test_loader)
+                lite_val = _epoch_val_lite(
+                    lite_vae, lite_classifier, val_loader, return_per_class=per_class_on_eval_only
+                )
+                lite_test = _epoch_val_lite(
+                    lite_vae, lite_classifier, test_loader, return_per_class=per_class_on_eval_only
+                )
                 if lite_val is not None and lite_test is not None:
-                    lval_acc, lval_f1, lval_auc, lval_bac, lval_sens, lval_spec = lite_val
-                    ltest_acc, ltest_f1, ltest_auc, ltest_bac, ltest_sens, ltest_spec = lite_test
+                    if per_class_on_eval_only:
+                        lval_acc, lval_f1, lval_auc, lval_bac, lval_sens, lval_spec, lval_per_class = lite_val
+                        ltest_acc, ltest_f1, ltest_auc, ltest_bac, ltest_sens, ltest_spec, ltest_per_class = lite_test
+                    else:
+                        lval_acc, lval_f1, lval_auc, lval_bac, lval_sens, lval_spec = lite_val
+                        ltest_acc, ltest_f1, ltest_auc, ltest_bac, ltest_sens, ltest_spec = lite_test
+                        lval_per_class = None
+                        ltest_per_class = None
                     msg_val = "lite_val: acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
                         lval_acc, lval_f1, lval_auc, lval_bac, lval_sens, lval_spec
                     )
@@ -335,6 +488,13 @@ def trainEncoder(
                     print(msg_test)
                     _write_local_log(log_f, msg_val)
                     _write_local_log(log_f, msg_test)
+                    if per_class_on_eval_only:
+                        for line in _format_per_class_lines("lite_val", lval_per_class):
+                            print(line)
+                            _write_local_log(log_f, line)
+                        for line in _format_per_class_lines("lite_test", ltest_per_class):
+                            print(line)
+                            _write_local_log(log_f, line)
                     if logger is not None:
                         logger.log({'lite_validation': {'Accuracy': lval_acc,
                                                         'F1 score': lval_f1,
@@ -357,11 +517,21 @@ def trainEncoder(
                     args.mix_alpha_end,
                     args.mix_schedule,
                 )
-                mix_val = _epoch_val_mix(model, lite_vae, kd_feat_proj, val_loader, alpha_eval)
-                mix_test = _epoch_val_mix(model, lite_vae, kd_feat_proj, test_loader, alpha_eval)
+                mix_val = _epoch_val_mix(
+                    model, lite_vae, kd_feat_proj, val_loader, alpha_eval, return_per_class=per_class_on_eval_only
+                )
+                mix_test = _epoch_val_mix(
+                    model, lite_vae, kd_feat_proj, test_loader, alpha_eval, return_per_class=per_class_on_eval_only
+                )
                 if mix_val is not None and mix_test is not None:
-                    mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec = mix_val
-                    mtest_acc, mtest_f1, mtest_auc, mtest_bac, mtest_sens, mtest_spec = mix_test
+                    if per_class_on_eval_only:
+                        mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec, mval_per_class = mix_val
+                        mtest_acc, mtest_f1, mtest_auc, mtest_bac, mtest_sens, mtest_spec, mtest_per_class = mix_test
+                    else:
+                        mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec = mix_val
+                        mtest_acc, mtest_f1, mtest_auc, mtest_bac, mtest_sens, mtest_spec = mix_test
+                        mval_per_class = None
+                        mtest_per_class = None
                     msg_val = "mix_val(alpha={:.3f}): acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
                         float(alpha_eval),
                         mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec
@@ -374,6 +544,13 @@ def trainEncoder(
                     print(msg_test)
                     _write_local_log(log_f, msg_val)
                     _write_local_log(log_f, msg_test)
+                    if per_class_on_eval_only:
+                        for line in _format_per_class_lines("mix_val", mval_per_class):
+                            print(line)
+                            _write_local_log(log_f, line)
+                        for line in _format_per_class_lines("mix_test", mtest_per_class):
+                            print(line)
+                            _write_local_log(log_f, line)
                     if logger is not None:
                         logger.log({'mix_validation': {'Accuracy': mval_acc,
                                                        'F1 score': mval_f1,
@@ -402,6 +579,23 @@ def trainEncoder(
 
     warned_no_teacher_logits = False
     for epoch in range(args.epochs):
+        if drw_enable:
+            if epoch < drw_start_epoch:
+                epoch_cls_loss_func = drw_warmup_loss_func
+                epoch_cls_loss_name = drw_warmup_loss_name
+            else:
+                epoch_cls_loss_func = drw_target_loss_func
+                epoch_cls_loss_name = drw_target_loss_type
+            if args.rank == 0 and (epoch == 0 or epoch == drw_start_epoch):
+                switch_msg = (
+                    f"[DRW] epoch={epoch + 1}, using_cls_loss={epoch_cls_loss_name} "
+                    f"(switch_epoch={drw_start_epoch + 1})"
+                )
+                print(switch_msg)
+                _write_local_log(log_f, switch_msg)
+        else:
+            epoch_cls_loss_func = classification_loss_func
+            epoch_cls_loss_name = stage1_cls_loss_type
         optimizer.zero_grad(set_to_none=True)
         if isinstance(train_loader.sampler, torch.utils.data.distributed.DistributedSampler):
             train_loader.sampler.set_epoch(epoch)
@@ -487,7 +681,7 @@ def trainEncoder(
             if outputs is None:
                 classification_loss = torch.tensor(0.0, device=zero_device)
             else:
-                classification_loss = classification_loss_func(outputs, label)
+                classification_loss = epoch_cls_loss_func(outputs, label)
 
             # probability distribution loss
             if not disable_mrc:
@@ -595,7 +789,7 @@ def trainEncoder(
                 if args.lite_vae_kl_weight > 0:
                     lite_kl_loss = -0.5 * torch.mean(1 + lite_logvar - lite_mu.pow(2) - lite_logvar.exp())
                 if args.lite_student_ce_weight > 0:
-                    lite_ce_loss = classification_loss_func(lite_logits, label)
+                    lite_ce_loss = epoch_cls_loss_func(lite_logits, label)
 
                 with torch.no_grad():
                     lite_pred = lite_logits.argmax(1)
@@ -662,7 +856,7 @@ def trainEncoder(
                         log_f,
                         "epoch={:d} iter={:d} train: total={:.6f}, prob={:.6f}, batch={:.6f}, channel={:.6f}, cls={:.6f}, "
                         "gauss={:.6f}, aux_recon={:.6f}, aux_kl={:.6f}, kd_logit={:.6f}, kd_feat={:.6f}, kd_struct={:.6f}, "
-                        "lite_recon={:.6f}, lite_kl={:.6f}, lite_ce={:.6f}, lite_acc={:.6f}, mix_alpha={}".format(
+                        "lite_recon={:.6f}, lite_kl={:.6f}, lite_ce={:.6f}, lite_acc={:.6f}, mix_alpha={}, cls_loss={}".format(
                             epoch + 1,
                             i + 1,
                             rank0_loss,
@@ -681,6 +875,7 @@ def trainEncoder(
                             lite_ce_loss.item(),
                             lite_acc.item(),
                             "None" if mix_alpha is None else float(mix_alpha),
+                            epoch_cls_loss_name,
                         ),
                     )
                 eval_every_epochs = max(1, int(getattr(args, "eval_every_epochs", 5)))
@@ -694,8 +889,12 @@ def trainEncoder(
                         test_acc, test_f1, test_auc, test_bac, test_sens, test_spec = epochVal(model, test_loader)
                     lite_metrics = None
                     if args.lite_eval_enable and args.lite_eval_use_classifier and lite_vae is not None and lite_classifier is not None:
-                        lite_val = _epoch_val_lite(lite_vae, lite_classifier, val_loader)
-                        lite_test = _epoch_val_lite(lite_vae, lite_classifier, test_loader)
+                        lite_val = _epoch_val_lite(
+                            lite_vae, lite_classifier, val_loader, return_per_class=per_class_on_train_eval
+                        )
+                        lite_test = _epoch_val_lite(
+                            lite_vae, lite_classifier, test_loader, return_per_class=per_class_on_train_eval
+                        )
                         lite_metrics = (lite_val, lite_test)
                     mix_metrics = None
                     if args.mix_eval_enable and lite_vae is not None and model is not None:
@@ -707,9 +906,20 @@ def trainEncoder(
                             args.mix_alpha_end,
                             args.mix_schedule,
                         )
-                        mix_val = _epoch_val_mix(model, lite_vae, kd_feat_proj, val_loader, alpha_eval)
-                        mix_test = _epoch_val_mix(model, lite_vae, kd_feat_proj, test_loader, alpha_eval)
+                        mix_val = _epoch_val_mix(
+                            model, lite_vae, kd_feat_proj, val_loader, alpha_eval, return_per_class=per_class_on_train_eval
+                        )
+                        mix_test = _epoch_val_mix(
+                            model, lite_vae, kd_feat_proj, test_loader, alpha_eval, return_per_class=per_class_on_train_eval
+                        )
                         mix_metrics = (mix_val, mix_test, alpha_eval)
+
+                    def _split_eval_result(result):
+                        if result is None:
+                            return None, None
+                        if per_class_on_train_eval and isinstance(result, tuple) and len(result) == 7:
+                            return result[:6], result[6]
+                        return result, None
                     if logger is not None:
                         logger.log({'training': {'total loss': rank0_loss,
                                                  'probability loss': probability_loss.item(),
@@ -740,7 +950,10 @@ def trainEncoder(
                                                        'Sensitivity': val_sens,
                                                        'Specificity': val_spec}})
                         if lite_metrics is not None:
-                            (lval_acc, lval_f1, lval_auc, lval_bac, lval_sens, lval_spec), (ltest_acc, ltest_f1, ltest_auc, ltest_bac, ltest_sens, ltest_spec) = lite_metrics
+                            lite_val_g, _ = _split_eval_result(lite_metrics[0])
+                            lite_test_g, _ = _split_eval_result(lite_metrics[1])
+                            lval_acc, lval_f1, lval_auc, lval_bac, lval_sens, lval_spec = lite_val_g
+                            ltest_acc, ltest_f1, ltest_auc, ltest_bac, ltest_sens, ltest_spec = lite_test_g
                             logger.log({'lite_test': {'Accuracy': ltest_acc,
                                                       'F1 score': ltest_f1,
                                                       'AUC': ltest_auc,
@@ -754,7 +967,11 @@ def trainEncoder(
                                                             'Sensitivity': lval_sens,
                                                             'Specificity': lval_spec}})
                         if mix_metrics is not None:
-                            (mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec), (mtest_acc, mtest_f1, mtest_auc, mtest_bac, mtest_sens, mtest_spec), alpha_eval = mix_metrics
+                            mix_val_g, _ = _split_eval_result(mix_metrics[0])
+                            mix_test_g, _ = _split_eval_result(mix_metrics[1])
+                            alpha_eval = mix_metrics[2]
+                            mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec = mix_val_g
+                            mtest_acc, mtest_f1, mtest_auc, mtest_bac, mtest_sens, mtest_spec = mix_test_g
                             logger.log({'mix_test': {'Accuracy': mtest_acc,
                                                      'F1 score': mtest_f1,
                                                      'AUC': mtest_auc,
@@ -784,7 +1001,10 @@ def trainEncoder(
                             ),
                         )
                     if lite_metrics is not None:
-                        (lval_acc, lval_f1, lval_auc, lval_bac, lval_sens, lval_spec), (ltest_acc, ltest_f1, ltest_auc, ltest_bac, ltest_sens, ltest_spec) = lite_metrics
+                        lite_val_g, lite_val_per = _split_eval_result(lite_metrics[0])
+                        lite_test_g, lite_test_per = _split_eval_result(lite_metrics[1])
+                        lval_acc, lval_f1, lval_auc, lval_bac, lval_sens, lval_spec = lite_val_g
+                        ltest_acc, ltest_f1, ltest_auc, ltest_bac, ltest_sens, ltest_spec = lite_test_g
                         _write_local_log(
                             log_f,
                             "epoch={:d} lite_test: acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
@@ -799,8 +1019,17 @@ def trainEncoder(
                                 lval_acc, lval_f1, lval_auc, lval_bac, lval_sens, lval_spec
                             ),
                         )
+                        if per_class_on_train_eval:
+                            for line in _format_per_class_lines("lite_val", lite_val_per):
+                                _write_local_log(log_f, f"epoch={epoch + 1} {line}")
+                            for line in _format_per_class_lines("lite_test", lite_test_per):
+                                _write_local_log(log_f, f"epoch={epoch + 1} {line}")
                     if mix_metrics is not None:
-                        (mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec), (mtest_acc, mtest_f1, mtest_auc, mtest_bac, mtest_sens, mtest_spec), alpha_eval = mix_metrics
+                        mix_val_g, mix_val_per = _split_eval_result(mix_metrics[0])
+                        mix_test_g, mix_test_per = _split_eval_result(mix_metrics[1])
+                        alpha_eval = mix_metrics[2]
+                        mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec = mix_val_g
+                        mtest_acc, mtest_f1, mtest_auc, mtest_bac, mtest_sens, mtest_spec = mix_test_g
                         _write_local_log(
                             log_f,
                             "epoch={:d} mix_test(alpha={:.3f}): acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
@@ -817,6 +1046,11 @@ def trainEncoder(
                                 mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec
                             ),
                         )
+                        if per_class_on_train_eval:
+                            for line in _format_per_class_lines("mix_val", mix_val_per):
+                                _write_local_log(log_f, f"epoch={epoch + 1} {line}")
+                            for line in _format_per_class_lines("mix_test", mix_test_per):
+                                _write_local_log(log_f, f"epoch={epoch + 1} {line}")
                     if show_teacher_metrics:
                         print(
                             "\nepoch={:d} test: acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
@@ -831,7 +1065,10 @@ def trainEncoder(
                             )
                         )
                     if lite_metrics is not None:
-                        (lval_acc, lval_f1, lval_auc, lval_bac, lval_sens, lval_spec), (ltest_acc, ltest_f1, ltest_auc, ltest_bac, ltest_sens, ltest_spec) = lite_metrics
+                        lite_val_g, lite_val_per = _split_eval_result(lite_metrics[0])
+                        lite_test_g, lite_test_per = _split_eval_result(lite_metrics[1])
+                        lval_acc, lval_f1, lval_auc, lval_bac, lval_sens, lval_spec = lite_val_g
+                        ltest_acc, ltest_f1, ltest_auc, ltest_bac, ltest_sens, ltest_spec = lite_test_g
                         print(
                             "epoch={:d} lite_test: acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
                                 epoch + 1,
@@ -844,8 +1081,17 @@ def trainEncoder(
                                 lval_acc, lval_f1, lval_auc, lval_bac, lval_sens, lval_spec
                             )
                         )
+                        if per_class_on_train_eval:
+                            for line in _format_per_class_lines("lite_val", lite_val_per):
+                                print(f"epoch={epoch + 1} {line}")
+                            for line in _format_per_class_lines("lite_test", lite_test_per):
+                                print(f"epoch={epoch + 1} {line}")
                     if mix_metrics is not None:
-                        (mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec), (mtest_acc, mtest_f1, mtest_auc, mtest_bac, mtest_sens, mtest_spec), alpha_eval = mix_metrics
+                        mix_val_g, mix_val_per = _split_eval_result(mix_metrics[0])
+                        mix_test_g, mix_test_per = _split_eval_result(mix_metrics[1])
+                        alpha_eval = mix_metrics[2]
+                        mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec = mix_val_g
+                        mtest_acc, mtest_f1, mtest_auc, mtest_bac, mtest_sens, mtest_spec = mix_test_g
                         print(
                             "epoch={:d} mix_test(alpha={:.3f}): acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
                                 epoch + 1,
@@ -860,6 +1106,11 @@ def trainEncoder(
                                 mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec
                             )
                         )
+                        if per_class_on_train_eval:
+                            for line in _format_per_class_lines("mix_val", mix_val_per):
+                                print(f"epoch={epoch + 1} {line}")
+                            for line in _format_per_class_lines("mix_test", mix_test_per):
+                                print(f"epoch={epoch + 1} {line}")
                     if show_teacher_metrics:
                         if best_test is None or test_acc > best_test["acc"]:
                             best_test = {

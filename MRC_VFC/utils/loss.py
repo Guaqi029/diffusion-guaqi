@@ -144,6 +144,68 @@ class GaussianPriorLoss(nn.Module):
         return nll.mean()
 
 
+class ClassBalancedLoss(nn.Module):
+    """
+    Class-Balanced Loss based on effective number of samples.
+    Supports:
+      - crossentropy (CB-CE)
+      - focal (CB-Focal)
+    """
+
+    def __init__(
+        self,
+        samples_per_cls,
+        no_of_classes,
+        beta=0.9999,
+        loss_type="crossentropy",
+        focal_gamma=2.0,
+        eps=1e-12,
+    ):
+        super(ClassBalancedLoss, self).__init__()
+        self.loss_type = str(loss_type).lower()
+        if self.loss_type in ("ce", "cb_ce"):
+            self.loss_type = "crossentropy"
+        elif self.loss_type in ("cb_focal",):
+            self.loss_type = "focal"
+        if self.loss_type not in ("crossentropy", "focal"):
+            raise ValueError("loss_type must be one of: crossentropy | focal")
+
+        self.no_of_classes = int(no_of_classes)
+        self.beta = float(beta)
+        self.focal_gamma = float(focal_gamma)
+        self.eps = float(eps)
+
+        counts = torch.as_tensor(samples_per_cls, dtype=torch.float64)
+        if counts.numel() != self.no_of_classes:
+            raise ValueError(
+                f"samples_per_cls length mismatch: {counts.numel()} != {self.no_of_classes}"
+            )
+
+        valid = counts > 0
+        effective_num = 1.0 - torch.pow(torch.tensor(self.beta, dtype=torch.float64), counts)
+        weights = torch.zeros_like(counts, dtype=torch.float64)
+        weights[valid] = (1.0 - self.beta) / torch.clamp(effective_num[valid], min=self.eps)
+        if torch.sum(weights) <= 0:
+            weights = torch.ones_like(weights, dtype=torch.float64)
+
+        # Normalize so the average class weight is approximately 1.
+        weights = weights / torch.clamp(weights.sum(), min=self.eps) * float(self.no_of_classes)
+        self.register_buffer("weights", weights.to(torch.float32))
+
+    def forward(self, logits, labels):
+        if self.loss_type == "crossentropy":
+            return F.cross_entropy(logits, labels, weight=self.weights)
+
+        # CB-Focal: alpha from class-balanced weights and p_t from logits.
+        ce = F.cross_entropy(logits, labels, reduction="none")
+        probs = torch.softmax(logits, dim=1)
+        pt = probs.gather(1, labels.unsqueeze(1)).squeeze(1)
+        pt = torch.clamp(pt, min=self.eps, max=1.0)
+        alpha = self.weights.gather(0, labels)
+        loss = alpha * torch.pow(1.0 - pt, self.focal_gamma) * ce
+        return loss.mean()
+
+
 class pNorm(nn.Module):
     def __init__(self, p=0.5):
         super(pNorm, self).__init__()

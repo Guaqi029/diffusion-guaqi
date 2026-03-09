@@ -4,7 +4,7 @@ gpus: 4
 nr: 0
 dataparallel: 0
 ddp_find_unused_parameters: True
-workers: 8
+workers: 2
 
 # Paths
 data_path: "/data/DataLACP/guyiqin/ISIC2019LT/ISIC_2019_Training_Input"
@@ -25,33 +25,42 @@ imbalance_factor: 500 # only for ISIC2019LT
 
 # Stage1 options
 seed: 42
-batch_size: 128
+batch_size: 16
 image_size: 256
 start_epoch: 0
-epochs: 30
+epochs: 100
 pretrained: True
 backbone: "resnet18"
-reload: True
+reload: False
 
 # Stage1 options
 lr: 0.001
 grad_clip_enable: True
 grad_clip_norm: 1.0
-grad_accum_steps: 1
+grad_accum_steps: 4
 ema_decay: 0.999
 batch_loss_weight: 10
 channel_loss_weight: 10
 classification_loss_weight: 1
 probability_loss_weight: 5
 eval_every_epochs: 5
-train_log_every_iters: 10
-console_log_every_iters: 10
+train_log_every_iters: 50
+console_log_every_iters: 50
 show_teacher_metrics: False
 use_class_weight: True
 class_weight_power: 1.0
 class_weight_min: 0.2
 class_weight_max: 5.0
 class_weight_eps: 0.000001
+stage1_cls_loss_type: "ce"  # ce | cb_ce | cb_focal
+cb_beta: 0.9999
+cb_focal_gamma: 2.0
+stage1_drw_enable: True
+stage1_drw_start_epoch: 60
+stage1_drw_target_loss_type: "cb_focal"  # ce | cb_ce | cb_focal
+stage1_drw_warmup_use_weighted_ce: True
+stage1_log_per_class_metrics: False
+stage1_log_per_class_in_train: False
 
 # Stage1 auxiliary VAE (kept optional for ablation)
 use_aux_vae: False
@@ -66,17 +75,17 @@ aux_vae_base_channels: 64
 aux_vae_dwt_levels: 1
 
 # Stage1 LiteVAE KD pretraining (ResNet teacher -> LiteVAE student)
-student_source: "lite"  # lite | vavae
+student_source: "vavae"  # lite | vavae
 
 # VA-VAE student options (used when student_source=vavae)
-vavae_student_init_path: ""
+vavae_student_init_path: "./checkpoints/pretrained/yao_vavae/vavae-imagenet256-f16d32-dinov2.pt"
 vavae_student_latent_dim: 32
 vavae_student_ch: 128
 vavae_student_ch_mult: "1,1,2,2,4"
 vavae_student_num_res_blocks: 2
 vavae_student_attn_levels: "4"
-vavae_student_input_size: 256
-vavae_student_resize_input: False
+vavae_student_input_size: 224
+vavae_student_resize_input: True
 vavae_student_pool: "avg"  # avg | max | flat
 vavae_student_feature_from: "mu"  # mu | moments
 vavae_student_enable_decoder: False
@@ -86,17 +95,17 @@ vavae_student_load_strict: False
 kd_enable: True
 kd_only: True  # when True, only KD/LiteVAE losses are optimized
 kd_freeze_teacher: True
-kd_teacher_source: "vavae"  # resnet | lite | vavae
+kd_teacher_source: "lite"  # resnet | lite | vavae
 kd_lite_teacher_use_weak_aug: True
 kd_lite_teacher_use_ema: True
-kd_lite_teacher_ema_decay: 0.999
+kd_lite_teacher_ema_decay: 0.99
 kd_vavae_teacher_use_weak_aug: True
 kd_temperature: 4.0
-kd_logit_weight: 0.0
-kd_feat_weight: 0.0
+kd_logit_weight: 0.5
+kd_feat_weight: 0.5
 kd_feat_start_epoch: 0
 kd_feat_norm: "l2"  # l2 | none
-kd_feat_project: True
+kd_feat_project: False
 kd_feat_project_mlp: True
 kd_feat_proj_depth: 3
 kd_feat_proj_hidden_dim: 512
@@ -154,7 +163,7 @@ lite_classifier_resume_path: ""
 kd_feat_proj_resume_path: ""
 
 # lite
-lite_eval_enable: False
+lite_eval_enable: True
 lite_eval_use_classifier: True
 lite_eval_only: False
 
@@ -174,8 +183,8 @@ stage1_lite_gaussian_save_every_epoch: False
 stage1_lite_gaussian_save_latest: True
 
 # Stage2 options
-stage2_batch_size: 256
-stage2_epochs: 500
+stage2_batch_size: 2048
+stage2_epochs: 300
 classifier_lr: 0.001
 backbone_lr: 0.000001
 virtual_size: 5000
@@ -197,9 +206,9 @@ stage2_virtual_min_per_class: 0
 stage2_virtual_max_per_class: -1
 stage2_virtual_max_ratio: 1.0  # -1 disable; else cap total virtual <= ratio * real
 stage2_virtual_counts_path: ""  # optional json: list or {class_id: count}
-stage2_enable_aas: False
-stage2_aas_gamma: 1.0
-stage2_aas_ema: 0.5
+stage2_enable_aas: True
+stage2_aas_gamma: 3.5
+stage2_aas_ema: 0.3
 stage2_aas_total_source: "base"  # base | current
 stage2_aas_follow_base_mask: True
 stage2_aas_allow_override_counts: False
@@ -209,6 +218,9 @@ stage2_gaussian_covariance: "diag"  # diag | full
 stage2_gaussian_var_floor: 0.0001
 stage2_gaussian_full_min_samples: 32
 stage2_gaussian_full_shrinkage: 0.1
+stage2_gaussian_calib_enable: True
+stage2_gaussian_calib_tau: 100.0
+stage2_gaussian_calib_head_min_count: 100
 stage2_use_saved_gaussian: False
 stage2_save_gaussian_stats: True
 stage2_gaussian_stats_path: ""  # relative to checkpoints/run_name unless absolute

@@ -64,13 +64,26 @@ def _sanitize_cuda_alloc_conf():
     )
 
 
-def main(gpu, args, wandb_logger):
-    if gpu != 0:
-        wandb_logger = None
+def main(gpu, args):
+    wandb_logger = None
 
     rank = args.nr * args.gpus + gpu
     args.rank = rank
     args.device = rank
+
+    # Initialize wandb only on rank0 child process to avoid mp.spawn pickling issues.
+    if rank == 0 and not args.debug:
+        if wandb is None:
+            raise ModuleNotFoundError(
+                "wandb is not installed. Install it or run with --debug."
+            )
+        wandb.login(key="[Your wandb key here]")
+        wandb_logger = wandb.init(
+            project="MRC_VFC_on_%s" % args.dataset,
+            notes="MICCAI 2023",
+            tags=["MICCAI23", "Class imbalance", "Dermoscopy", "Representation Learning"],
+            config={k: v for k, v in vars(args).items() if isinstance(v, (int, float, str, bool))},
+        )
 
     if args.world_size > 1:
         dist.init_process_group("nccl", rank=rank, world_size=args.world_size)
@@ -538,35 +551,13 @@ if __name__ == '__main__':
     if not os.path.exists(args.checkpoints):
         os.makedirs(args.checkpoints)
 
-    # init wandb if not in debug mode
-    if not args.debug:
-        if wandb is None:
-            raise ModuleNotFoundError(
-                "wandb is not installed. Install it or run with --debug."
-            )
-        wandb.login(key="[Your wandb key here]")
-        config = dict()
-
-        for k, v in yaml_config.items():
-            config[k] = v
-
-        wandb_logger = wandb.init(
-            project="MRC_VFC_on_%s"%args.dataset,
-            notes="MICCAI 2023",
-            tags=["MICCAI23", "Class imbalance", "Dermoscopy", "Representation Learning"],
-            config=config
-        )
-    else:
-        wandb_logger = None
-
-
     if args.world_size > 1:
         print(
             f"Training with {args.world_size} GPUS, waiting until all processes join before starting training"
         )
-        mp.spawn(main, args=(args, wandb_logger,), nprocs=args.world_size, join=True)
+        mp.spawn(main, args=(args,), nprocs=args.world_size, join=True)
     else:
-        main(0, args, wandb_logger)
+        main(0, args)
 
     # Run stage2 once after stage1 finishes (only in the launcher process)
     if args.auto_run_stage2:

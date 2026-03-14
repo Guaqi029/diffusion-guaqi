@@ -185,6 +185,7 @@ stage1_lite_gaussian_save_latest: True
 # Stage2 options
 stage2_batch_size: 2048
 stage2_epochs: 300
+stage2_deterministic: True
 classifier_lr: 0.001
 backbone_lr: 0.000001
 virtual_size: 5000

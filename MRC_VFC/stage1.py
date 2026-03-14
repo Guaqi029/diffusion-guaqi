@@ -2,6 +2,7 @@ import os
 import sys
 import subprocess
 import time
+import random
 import torch
 import argparse
 import torch.distributed as dist
@@ -64,6 +65,25 @@ def _sanitize_cuda_alloc_conf():
     )
 
 
+def _set_seed(seed, deterministic=True):
+    seed = int(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+    if deterministic:
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+
+def _seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % (2 ** 32)
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
+
 def main(gpu, args):
     wandb_logger = None
 
@@ -89,8 +109,13 @@ def main(gpu, args):
         dist.init_process_group("nccl", rank=rank, world_size=args.world_size)
         torch.cuda.set_device(gpu)
 
-    torch.manual_seed(args.seed)
-    np.random.seed(args.seed)
+    base_seed = int(args.seed)
+    process_seed = base_seed + int(rank)
+    _set_seed(process_seed, deterministic=True)
+    if rank == 0:
+        print(f"[Seed] base_seed={base_seed}, rank0_process_seed={process_seed}, cudnn_deterministic=True")
+    loader_generator = torch.Generator()
+    loader_generator.manual_seed(process_seed)
 
     # training set
     transforms = Transforms(size=args.image_size)
@@ -100,7 +125,11 @@ def main(gpu, args):
     # set sampler for parallel training
     if args.world_size > 1:
         train_sampler = torch.utils.data.distributed.DistributedSampler(
-            train_dataset, num_replicas=args.world_size, rank=rank, shuffle=True
+            train_dataset,
+            num_replicas=args.world_size,
+            rank=rank,
+            shuffle=True,
+            seed=base_seed,
         )
     else:
         train_sampler = None
@@ -112,12 +141,30 @@ def main(gpu, args):
         drop_last=True,
         num_workers=args.workers,
         sampler=train_sampler,
+        worker_init_fn=_seed_worker,
+        generator=loader_generator,
     )
     if rank == 0:
         test_dataset = ISICDataset(args.data_path, args.csv_file_test, transform=transforms.test_transform)
         val_dataset = ISICDataset(args.data_path, args.csv_file_val, transform=transforms.test_transform)
-        test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.workers)
-        val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.workers)
+        eval_generator = torch.Generator()
+        eval_generator.manual_seed(base_seed + 99991)
+        test_loader = DataLoader(
+            test_dataset,
+            batch_size=args.batch_size,
+            shuffle=False,
+            num_workers=args.workers,
+            worker_init_fn=_seed_worker,
+            generator=eval_generator,
+        )
+        val_loader = DataLoader(
+            val_dataset,
+            batch_size=args.batch_size,
+            shuffle=False,
+            num_workers=args.workers,
+            worker_init_fn=_seed_worker,
+            generator=eval_generator,
+        )
     else:
         test_loader = None
         val_loader = None

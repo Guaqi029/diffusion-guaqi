@@ -3,6 +3,7 @@ import glob
 import json
 import time
 import argparse
+import random
 import torch
 import numpy as np
 from models import CreateModel, Linear, LiteVAE, VAVAEStudentVAE
@@ -57,6 +58,25 @@ def _sanitize_cuda_alloc_conf():
     )
 
 
+def _set_seed(seed, deterministic=True):
+    seed = int(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+    if deterministic:
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+
+def _seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % (2 ** 32)
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
+
 def _set_requires_grad(module, flag):
     for p in module.parameters():
         p.requires_grad_(flag)
@@ -106,26 +126,59 @@ def get_features(feature_model, train_loader, test_loader, val_loader, device, f
     return train_X, train_y, test_X, test_y, val_X, val_y
 
 
-def create_data_loaders_from_arrays(X_train, y_train, X_test, y_test, X_val, y_val, batch_size):
+def create_data_loaders_from_arrays(
+    X_train,
+    y_train,
+    X_test,
+    y_test,
+    X_val,
+    y_val,
+    batch_size,
+    num_workers=0,
+    base_seed=0,
+    epoch=0,
+):
+    train_gen = torch.Generator()
+    train_gen.manual_seed(int(base_seed) + int(epoch) * 1009 + 1)
+    test_gen = torch.Generator()
+    test_gen.manual_seed(int(base_seed) + int(epoch) * 1009 + 2)
+    val_gen = torch.Generator()
+    val_gen.manual_seed(int(base_seed) + int(epoch) * 1009 + 3)
+
     train = torch.utils.data.TensorDataset(
         torch.from_numpy(X_train), torch.from_numpy(y_train)
     )
     train_loader = torch.utils.data.DataLoader(
-        train, batch_size=batch_size, shuffle=True
+        train,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        worker_init_fn=_seed_worker,
+        generator=train_gen,
     )
 
     test = torch.utils.data.TensorDataset(
         torch.from_numpy(X_test), torch.from_numpy(y_test)
     )
     test_loader = torch.utils.data.DataLoader(
-        test, batch_size=batch_size, shuffle=False
+        test,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        worker_init_fn=_seed_worker,
+        generator=test_gen,
     )
 
     val = torch.utils.data.TensorDataset(
         torch.from_numpy(X_val), torch.from_numpy(y_val)
     )
     val_loader = DataLoader(
-        val, batch_size=batch_size, shuffle=False
+        val,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        worker_init_fn=_seed_worker,
+        generator=val_gen,
     )
     return train_loader, test_loader, val_loader
 
@@ -491,6 +544,9 @@ if __name__ == "__main__":
 
     _sanitize_cuda_alloc_conf()
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    base_seed = int(getattr(args, "seed", 42))
+    stage2_deterministic = bool(getattr(args, "stage2_deterministic", True))
+    _set_seed(base_seed, deterministic=stage2_deterministic)
     args.checkpoints_root = args.checkpoints
     if not args.run_name:
         args.run_name = time.strftime("run_%Y%m%d_%H%M%S")
@@ -501,6 +557,12 @@ if __name__ == "__main__":
     if args.debug and args.log_file:
         log_f = open(args.log_file, "w", encoding="utf-8")
         _write_local_log(log_f, f"Stage2 start: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    seed_msg = (
+        f"seed={base_seed}, stage2_deterministic={int(stage2_deterministic)}, "
+        f"cudnn_deterministic={int(torch.backends.cudnn.deterministic)}"
+    )
+    print(f"[Seed] {seed_msg}")
+    _write_local_log(log_f, f"[Seed] {seed_msg}")
 
     if not args.debug:
         if wandb is None:
@@ -527,12 +589,21 @@ if __name__ == "__main__":
     test_dataset = ISICDataset(args.data_path, args.csv_file_test, transform=transforms.test_transform)
     val_dataset = ISICDataset(args.data_path, args.csv_file_val, transform=transforms.test_transform)
 
+    train_gen = torch.Generator()
+    train_gen.manual_seed(base_seed + 11)
+    test_gen = torch.Generator()
+    test_gen.manual_seed(base_seed + 22)
+    val_gen = torch.Generator()
+    val_gen.manual_seed(base_seed + 33)
+
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
         shuffle=True,
         drop_last=True,
         num_workers=args.workers,
+        worker_init_fn=_seed_worker,
+        generator=train_gen,
     )
 
     test_loader = DataLoader(
@@ -540,6 +611,8 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         shuffle=False,
         num_workers=args.workers,
+        worker_init_fn=_seed_worker,
+        generator=test_gen,
     )
 
     val_loader = DataLoader(
@@ -547,6 +620,8 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         shuffle=False,
         num_workers=args.workers,
+        worker_init_fn=_seed_worker,
+        generator=val_gen,
     )
 
     # Load stage1 feature extractor (ResNet or LiteVAE)
@@ -851,7 +926,10 @@ if __name__ == "__main__":
                     scale = max_total / float(cur_total)
                     class_sizes = np.floor(class_sizes.astype(np.float64) * scale).astype(np.int64)
 
-            virtual_X, virtual_y = sample_virtual_representations(gaussian_stats, class_sizes)
+            sampling_rng = np.random.default_rng(base_seed + 100000 + int(epoch))
+            virtual_X, virtual_y = sample_virtual_representations(
+                gaussian_stats, class_sizes, rng=sampling_rng
+            )
             merge_real = bool(getattr(args, "stage2_virtual_merge_real", True))
             if merge_real and len(virtual_X) > 0:
                 train_X_for_cls = np.concatenate([train_X, virtual_X], axis=0)
@@ -877,7 +955,16 @@ if __name__ == "__main__":
             })
 
         arr_train_loader, arr_test_loader, arr_val_loader = create_data_loaders_from_arrays(
-            train_X_for_cls, train_y_for_cls, test_X, test_y, val_X, val_y, args.stage2_batch_size
+            train_X_for_cls,
+            train_y_for_cls,
+            test_X,
+            test_y,
+            val_X,
+            val_y,
+            args.stage2_batch_size,
+            num_workers=args.workers,
+            base_seed=base_seed,
+            epoch=epoch,
         )
 
         if stage2_use_class_weight:

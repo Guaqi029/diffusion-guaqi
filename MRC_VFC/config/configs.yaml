@@ -22,6 +22,8 @@ teacher_epoch: 0
 # Dataset Options
 dataset: "ISIC2019LT"
 imbalance_factor: 500 # only for ISIC2019LT
+lt_split_use_factor_seed_dir: True
+lt_split_root: "./split/ISIC2019LT"
 
 # Stage1 options
 seed: 42

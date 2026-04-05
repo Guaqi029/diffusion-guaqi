@@ -24,7 +24,7 @@ from torch.utils.data import DataLoader
 from train import trainEncoder
 from utils.yaml_config_hook import yaml_config_hook
 from utils.sync_batchnorm import convert_model
-from prepare_datasets import construct_ISIC2019LT
+from utils.lt_split import resolve_isic2019lt_split_paths, isic2019lt_split_files_exist
 
 try:
     import wandb
@@ -587,12 +587,19 @@ if __name__ == '__main__':
     os.environ['MASTER_ADDR'] = 'localhost'
     os.environ['MASTER_PORT'] = '12345'
 
-    # if the dataset is 2019LT, construct a new dataset split
-    # with imbalance factor=args.imbalance_factor
+    split_dir = resolve_isic2019lt_split_paths(args)
+
+    # For ISIC2019LT, stage1 only resolves which csv files to use.
     if args.dataset == "ISIC2019LT":
-        print("Constructing ISIC2019LT Dataset with imbalance factor=%d" % args.imbalance_factor)
-        construct_ISIC2019LT(imbalance_factor=args.imbalance_factor, data_root=args.data_path,
-        csv_file_root=os.path.dirname(args.csv_file_train), random_seed=args.seed)
+        if split_dir:
+            print(f"ISIC2019LT split dir: {split_dir}")
+        if not isic2019lt_split_files_exist(args):
+            raise FileNotFoundError(
+                "Resolved ISIC2019LT split files are missing. "
+                "Run the standalone split builder first, or copy the saved csv files into: "
+                f"{split_dir}"
+            )
+        print("Using existing ISIC2019LT split files.")
 
     # check checkpoints path
     if not os.path.exists(args.checkpoints):

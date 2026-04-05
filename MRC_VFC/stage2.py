@@ -18,6 +18,7 @@ from utils.yaml_config_hook import yaml_config_hook
 from torch.utils.data import DataLoader
 from utils import epochVal
 from utils.loss import GCELoss
+from utils.lt_split import resolve_isic2019lt_split_paths, isic2019lt_split_files_exist
 
 try:
     import wandb
@@ -557,6 +558,18 @@ if __name__ == "__main__":
     if args.debug and args.log_file:
         log_f = open(args.log_file, "w", encoding="utf-8")
         _write_local_log(log_f, f"Stage2 start: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+
+    split_dir = resolve_isic2019lt_split_paths(args)
+    if args.dataset == "ISIC2019LT" and split_dir:
+        split_msg = f"ISIC2019LT split dir: {split_dir}"
+        print(split_msg)
+        _write_local_log(log_f, split_msg)
+        if not isic2019lt_split_files_exist(args):
+            raise FileNotFoundError(
+                "Resolved ISIC2019LT split files are missing. "
+                f"Expected training/validation/testing csv under: {split_dir}"
+            )
+
     seed_msg = (
         f"seed={base_seed}, stage2_deterministic={int(stage2_deterministic)}, "
         f"cudnn_deterministic={int(torch.backends.cudnn.deterministic)}"

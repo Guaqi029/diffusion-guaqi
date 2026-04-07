@@ -1,3 +1,3 @@
 # Export Index
 
-- [审阅项目以了解科研方向】</codex_output_schema}](2026-03-07-0142_vscode_019cc0bc-2961-76b2-a4ca-a3c1345c2d31_codex_output_schema/transcript.md)
+- [## My request for Codex:](2025-12-08-1236_vscode_019afdf7-038e-7321-8138-90eae2ecc274_My-request-for-Codex/transcript.md)

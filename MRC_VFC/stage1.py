@@ -8,8 +8,6 @@ import argparse
 import torch.distributed as dist
 from models import (
     CreateModel,
-    AuxVAE,
-    LiteAuxVAE,
     LiteVAE,
     Linear,
     VAVAETeacherEncoder,
@@ -184,7 +182,6 @@ def main(gpu, args):
         args.kd_enable
         and args.kd_only
         and kd_teacher_source in ("lite", "vavae")
-        and not args.mix_enable
         and not show_teacher_metrics
     )
 
@@ -203,19 +200,13 @@ def main(gpu, args):
             return torch.device(f"cuda:{gpu}")
         return torch.device("cpu")
 
-    if args.mix_enable and kd_teacher_source == "vavae":
-        if rank == 0:
-            print("[Config] mix_enable=True is not supported with kd_teacher_source=vavae. Force set mix_enable=False, mix_eval_enable=False.")
-        args.mix_enable = False
-        args.mix_eval_enable = False
     need_resnet_teacher = not (
         args.kd_enable
         and args.kd_only
         and kd_teacher_source in ("lite", "vavae")
-        and not args.mix_enable
     )
     need_teacher_reload = bool(args.reload) and need_resnet_teacher
-    if args.lite_eval_only and not args.mix_eval_enable:
+    if args.lite_eval_only:
         need_teacher_reload = False
 
     if need_teacher_reload:
@@ -229,8 +220,8 @@ def main(gpu, args):
             teacher_ckpt_dir, "epoch_{}_.pth".format(teacher_epoch)
         )
         model.load_state_dict(torch.load(model_fp, map_location=_get_map_location()))
-    elif args.reload and rank == 0 and args.lite_eval_only and not args.mix_eval_enable:
-        print("[Reload] Skipped teacher checkpoint loading (lite_eval_only=True, mix_eval_enable=False).")
+    elif args.reload and rank == 0 and args.lite_eval_only:
+        print("[Reload] Skipped teacher checkpoint loading (lite_eval_only=True).")
     elif args.reload and rank == 0 and not need_resnet_teacher:
         print(
             f"[Reload] Skipped ResNet teacher checkpoint loading "
@@ -247,37 +238,13 @@ def main(gpu, args):
             param.requires_grad_(False)
         for param in ema_model.parameters():
             param.requires_grad_(False)
-    if args.mix_enable and args.mix_freeze_teacher and model is not None:
-        if hasattr(model, "encoder"):
-            for param in model.encoder.parameters():
-                param.requires_grad_(False)
-
-    aux_vae = None
     lite_vae = None
     lite_classifier = None
     lite_vae_teacher = None
     lite_classifier_teacher = None
     vavae_teacher = None
     kd_feat_proj = None
-    if args.use_aux_vae:
-        if args.aux_vae_type == "lite":
-            aux_vae = LiteAuxVAE(
-                image_size=args.image_size,
-                in_channels=3,
-                base_channels=args.aux_vae_base_channels,
-                latent_dim=args.aux_vae_latent_dim,
-                dwt_levels=args.aux_vae_dwt_levels,
-            ).to(args.device)
-        else:
-            if model is None:
-                raise RuntimeError("aux_vae_input=features requires ResNet backbone, but it is disabled.")
-            aux_vae = AuxVAE(
-                in_features=model.n_features,
-                latent_dim=args.aux_vae_latent_dim,
-                image_size=args.image_size,
-            ).to(args.device)
-
-    if args.kd_enable or args.mix_enable or args.lite_eval_enable:
+    if args.kd_enable or args.lite_eval_enable:
         def _build_student_vae():
             if student_source == "vavae":
                 student_latent_dim = int(
@@ -331,9 +298,7 @@ def main(gpu, args):
         else:
             kd_teacher_feat_dim = args.student_latent_dim
 
-        need_feat_proj = bool(args.kd_feat_project) and (
-            args.mix_enable or (kd_teacher_feat_dim != args.student_latent_dim)
-        )
+        need_feat_proj = bool(args.kd_feat_project) and (kd_teacher_feat_dim != args.student_latent_dim)
         if need_feat_proj:
             if getattr(args, "kd_feat_project_mlp", False):
                 hidden_dim = int(getattr(args, "kd_feat_proj_hidden_dim", 0))
@@ -461,8 +426,6 @@ def main(gpu, args):
     optim_params = []
     if model is not None and not (args.kd_enable and args.kd_freeze_teacher):
         optim_params += list(model.parameters())
-    if aux_vae is not None:
-        optim_params += list(aux_vae.parameters())
     if lite_vae is not None:
         optim_params += list(lite_vae.parameters())
     if lite_classifier is not None:
@@ -479,8 +442,6 @@ def main(gpu, args):
         if ema_model is not None:
             ema_model = convert_model(ema_model)
             ema_model = DataLoader(ema_model)
-        if aux_vae is not None:
-            aux_vae = DataParallel(aux_vae)
         if lite_vae is not None:
             lite_vae = DataParallel(lite_vae)
         if lite_classifier is not None:
@@ -513,7 +474,6 @@ def main(gpu, args):
         optimizer,
         wandb_logger,
         args,
-        aux_vae=aux_vae,
         lite_vae=lite_vae,
         lite_classifier=lite_classifier,
         lite_vae_teacher=lite_vae_teacher,
@@ -582,10 +542,9 @@ if __name__ == '__main__':
         args.run_name = time.strftime("run_%Y%m%d_%H%M%S")
     args.checkpoints = os.path.join(checkpoints_root, args.run_name)
 
-    # Master address for distributed data parallel
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '12345'
+    # Respect externally provided visible devices and allow caller to override rendezvous config.
+    os.environ.setdefault('MASTER_ADDR', 'localhost')
+    os.environ.setdefault('MASTER_PORT', '12345')
 
     split_dir = resolve_isic2019lt_split_paths(args)
 

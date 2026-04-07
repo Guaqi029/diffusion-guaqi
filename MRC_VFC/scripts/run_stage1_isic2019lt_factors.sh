@@ -104,7 +104,6 @@ run_factor() {
     --kd_struct_type cka --kd_struct_weight 1.0 --kd_struct_start_epoch 20 \
     --lite_vae_recon_weight 0.0 --lite_vae_kl_weight 0.0 \
     --lite_student_ce_weight 1.0 \
-    --mix_enable False --mix_eval_enable False --mix_disable_mrc True \
     --show_teacher_metrics False \
     --use_class_weight True \
     --stage1_cls_loss_type ce \

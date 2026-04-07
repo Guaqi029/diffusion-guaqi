@@ -1,6 +1,6 @@
 # distributed training
 nodes: 1
-gpus: 4
+gpus: 1
 nr: 0
 dataparallel: 0
 ddp_find_unused_parameters: True
@@ -23,12 +23,12 @@ teacher_epoch: 0
 dataset: "ISIC2019LT"
 imbalance_factor: 500 # only for ISIC2019LT
 lt_split_use_factor_seed_dir: True
-lt_split_root: "./split/ISIC2019LT"
+lt_split_root: "/data/DataLACP/guyiqin/CODE/Difussion/MRC_VFC/split/ISIC2019LT"
 
 # Stage1 options
 seed: 42
-batch_size: 16
-image_size: 256
+batch_size: 4
+image_size: 224
 start_epoch: 0
 epochs: 100
 pretrained: True
@@ -57,24 +57,12 @@ class_weight_eps: 0.000001
 stage1_cls_loss_type: "ce"  # ce | cb_ce | cb_focal
 cb_beta: 0.9999
 cb_focal_gamma: 2.0
-stage1_drw_enable: True
+stage1_drw_enable: False
 stage1_drw_start_epoch: 60
 stage1_drw_target_loss_type: "cb_focal"  # ce | cb_ce | cb_focal
 stage1_drw_warmup_use_weighted_ce: True
 stage1_log_per_class_metrics: False
 stage1_log_per_class_in_train: False
-
-# Stage1 auxiliary VAE (kept optional for ablation)
-use_aux_vae: False
-aux_vae_type: "lite"  # simple | lite
-aux_vae_input: "image"  # features | image
-aux_vae_latent_dim: 128
-aux_vae_recon_weight: 1.0
-aux_vae_kl_weight: 0
-aux_vae_recon_type: "l1"  # l1 or mse
-aux_vae_start_epoch: 0
-aux_vae_base_channels: 64
-aux_vae_dwt_levels: 1
 
 # Stage1 LiteVAE KD pretraining (ResNet teacher -> LiteVAE student)
 student_source: "vavae"  # lite | vavae
@@ -136,17 +124,6 @@ vavae_teacher_feature_from: "mu"  # mu | moments
 vavae_teacher_partial_load: True
 vavae_teacher_load_strict: False
 
-# Stage1 feature mix (Step4)
-mix_enable: False
-mix_alpha_start: 0.0
-mix_alpha_end: 1.0
-mix_start_epoch: 0
-mix_end_epoch: 50
-mix_schedule: "linear"  # linear | cosine
-mix_freeze_teacher: True
-mix_disable_mrc: True
-mix_eval_enable: False
-
 lite_vae_variant: "full"  # full | simple
 lite_vae_dwt_levels: 3
 lite_vae_base_channels: 128
@@ -156,7 +133,6 @@ lite_vae_kl_weight: 0.0
 lite_vae_recon_type: "l1"  # l1 or mse
 lite_student_ce_weight: 1.0
 lite_student_feature_mode: "mu"  # mu | z
-mix_lite_feature_mode: "mu"  # mu | z
 # lite_vae_resume_path: "litevae_epoch_40_.pth"
 # lite_classifier_resume_path: "lite_classifier_epoch_40_.pth"
 # kd_feat_proj_resume_path: "kd_feat_proj_epoch_40_.pth"

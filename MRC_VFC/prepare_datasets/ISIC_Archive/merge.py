@@ -7,8 +7,8 @@ root = "/mnt/ssd/li/ISIC_Archive"
 split_root = "/home/panli/Ours/split/ISIC_Archive"
 diagnosis = {'NV': 12875, 'MEL': 4522, 'BCC': 3393, 'SK': 1464,
              'AK': 869, 'SCC': 656, 'BKL': 384, 'SL': 270,
-             'VASC': 253, 'DF': 246, 'LK': 32, 'LS': 27,
-             'AN': 15, 'AMP': 14}
+             'VASC': 253, 'DF': 246, 'LK': 16, 'LS': 27,
+             'AN': 15}
 train_df = pd.DataFrame()
 test_df = pd.DataFrame()
 val_df = pd.DataFrame()

@@ -125,18 +125,6 @@ def _get_encoder(model):
     return model.encoder
 
 
-def _compute_mix_alpha(epoch, start_epoch, end_epoch, alpha_start, alpha_end, schedule):
-    if epoch <= start_epoch:
-        return alpha_start
-    if epoch >= end_epoch:
-        return alpha_end
-    t = (epoch - start_epoch) / max(1, end_epoch - start_epoch)
-    if schedule == "cosine":
-        import math
-        return alpha_start + 0.5 * (1 - math.cos(t * math.pi)) * (alpha_end - alpha_start)
-    return alpha_start + t * (alpha_end - alpha_start)
-
-
 def _batch_gram(features, norm="l2", center=False):
     if center:
         features = features - features.mean(dim=0, keepdim=True)
@@ -186,7 +174,6 @@ def trainEncoder(
     optimizer,
     logger,
     args,
-    aux_vae=None,
     lite_vae=None,
     lite_classifier=None,
     lite_vae_teacher=None,
@@ -214,10 +201,6 @@ def trainEncoder(
             mode="nll",
             fixed_var_value=args.gaussian_fixed_var_value,
         )
-    if args.aux_vae_recon_type == "mse":
-        recon_loss_func = nn.MSELoss()
-    else:
-        recon_loss_func = nn.L1Loss()
     if args.lite_vae_recon_type == "mse":
         lite_recon_loss_func = nn.MSELoss()
     else:
@@ -312,7 +295,6 @@ def trainEncoder(
             ).to(args.device)
 
     lite_feature_mode = getattr(args, "lite_student_feature_mode", "mu")
-    mix_feature_mode = getattr(args, "mix_lite_feature_mode", lite_feature_mode)
     show_teacher_metrics = bool(getattr(args, "show_teacher_metrics", False))
     stage1_log_per_class_metrics = bool(getattr(args, "stage1_log_per_class_metrics", False))
     stage1_log_per_class_in_train = bool(getattr(args, "stage1_log_per_class_in_train", False))
@@ -395,7 +377,7 @@ def trainEncoder(
                 f"kd_vavae_teacher_use_weak_aug={kd_vavae_teacher_use_weak_aug}"
             ),
         )
-        _write_local_log(log_f, f"lite_feature_mode={lite_feature_mode}, mix_feature_mode={mix_feature_mode}")
+        _write_local_log(log_f, f"lite_feature_mode={lite_feature_mode}")
         _write_local_log(log_f, f"show_teacher_metrics={show_teacher_metrics}")
         _write_local_log(log_f, f"grad_accum_steps={grad_accum_steps}, need_lite_recon_forward={need_lite_recon_forward}")
     def _epoch_val_lite(lite_vae, lite_classifier, data_loader, return_per_class=False):
@@ -420,42 +402,6 @@ def trainEncoder(
             per_class = compute_per_class_metrics(groundTruth, activations, num_classes=args.num_classes)
         lite_vae.train(training_vae)
         lite_classifier.train(training_cls)
-        if return_per_class:
-            return acc, f1, auc, bac, sens, spec, per_class
-        return acc, f1, auc, bac, sens, spec
-
-    def _epoch_val_mix(model, lite_vae, kd_feat_proj, data_loader, alpha, return_per_class=False):
-        if lite_vae is None:
-            return None
-        training_model = model.training
-        training_vae = lite_vae.training
-        model.eval()
-        lite_vae.eval()
-        groundTruth = torch.Tensor().cuda()
-        activations = torch.Tensor().cuda()
-        encoder = _get_encoder(model)
-        classifier = _get_classifier(model)
-        with torch.no_grad():
-            for image, label in data_loader:
-                image, label = image.cuda(), label.cuda()
-                feat_t = encoder(image)
-                mu, _, z, _ = lite_vae(image)
-                feat_s = _select_lite_feature(mu, z, mix_feature_mode)
-                if kd_feat_proj is not None:
-                    feat_s = kd_feat_proj(feat_s)
-                elif feat_s.size(1) != feat_t.size(1):
-                    raise ValueError("Feature dims do not match and no projection is provided for mix eval")
-                mix_feat = (1 - alpha) * feat_t + alpha * feat_s
-                logits = classifier(mix_feat)
-                logits = F.softmax(logits, dim=1)
-                groundTruth = torch.cat((groundTruth, label))
-                activations = torch.cat((activations, logits))
-        acc, f1, auc, bac, sens, spec = compute_avg_metrics(groundTruth, activations)
-        per_class = None
-        if return_per_class:
-            per_class = compute_per_class_metrics(groundTruth, activations, num_classes=args.num_classes)
-        model.train(training_model)
-        lite_vae.train(training_vae)
         if return_per_class:
             return acc, f1, auc, bac, sens, spec, per_class
         return acc, f1, auc, bac, sens, spec
@@ -508,66 +454,8 @@ def trainEncoder(
                                                   'Balanced Accuracy': ltest_bac,
                                                   'Sensitivity': ltest_sens,
                                                   'Specificity': ltest_spec}})
-            if args.mix_eval_enable and lite_vae is not None and model is not None:
-                alpha_eval = _compute_mix_alpha(
-                    0,
-                    args.mix_start_epoch,
-                    args.mix_end_epoch,
-                    args.mix_alpha_start,
-                    args.mix_alpha_end,
-                    args.mix_schedule,
-                )
-                mix_val = _epoch_val_mix(
-                    model, lite_vae, kd_feat_proj, val_loader, alpha_eval, return_per_class=per_class_on_eval_only
-                )
-                mix_test = _epoch_val_mix(
-                    model, lite_vae, kd_feat_proj, test_loader, alpha_eval, return_per_class=per_class_on_eval_only
-                )
-                if mix_val is not None and mix_test is not None:
-                    if per_class_on_eval_only:
-                        mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec, mval_per_class = mix_val
-                        mtest_acc, mtest_f1, mtest_auc, mtest_bac, mtest_sens, mtest_spec, mtest_per_class = mix_test
-                    else:
-                        mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec = mix_val
-                        mtest_acc, mtest_f1, mtest_auc, mtest_bac, mtest_sens, mtest_spec = mix_test
-                        mval_per_class = None
-                        mtest_per_class = None
-                    msg_val = "mix_val(alpha={:.3f}): acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
-                        float(alpha_eval),
-                        mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec
-                    )
-                    msg_test = "mix_test(alpha={:.3f}): acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
-                        float(alpha_eval),
-                        mtest_acc, mtest_f1, mtest_auc, mtest_bac, mtest_sens, mtest_spec
-                    )
-                    print(msg_val)
-                    print(msg_test)
-                    _write_local_log(log_f, msg_val)
-                    _write_local_log(log_f, msg_test)
-                    if per_class_on_eval_only:
-                        for line in _format_per_class_lines("mix_val", mval_per_class):
-                            print(line)
-                            _write_local_log(log_f, line)
-                        for line in _format_per_class_lines("mix_test", mtest_per_class):
-                            print(line)
-                            _write_local_log(log_f, line)
-                    if logger is not None:
-                        logger.log({'mix_validation': {'Accuracy': mval_acc,
-                                                       'F1 score': mval_f1,
-                                                       'AUC': mval_auc,
-                                                       'Balanced Accuracy': mval_bac,
-                                                       'Sensitivity': mval_sens,
-                                                       'Specificity': mval_spec}})
-                        logger.log({'mix_test': {'Accuracy': mtest_acc,
-                                                 'F1 score': mtest_f1,
-                                                 'AUC': mtest_auc,
-                                                 'Balanced Accuracy': mtest_bac,
-                                                 'Sensitivity': mtest_sens,
-                                                 'Specificity': mtest_spec}})
         return
 
-    if model is None and args.mix_enable:
-        raise RuntimeError("mix_enable=True requires ResNet model, but model is None.")
     if model is None and not (args.kd_enable and args.kd_only):
         raise RuntimeError("ResNet model is None, but training is not in kd_only mode.")
     if model is None and kd_teacher_source == "resnet":
@@ -605,7 +493,7 @@ def trainEncoder(
             is_last_iter = (i + 1) == len(train_loader)
 
             kd_only = args.kd_enable and args.kd_only
-            disable_mrc = kd_only or bool(getattr(args, "mix_disable_mrc", False)) or (model is None)
+            disable_mrc = kd_only or (model is None)
             activations, outputs = None, None
             if model is not None:
                 if args.kd_enable and args.kd_freeze_teacher:
@@ -616,11 +504,9 @@ def trainEncoder(
 
             teacher_outputs = outputs
             teacher_feat_for_kd = activations
-            mix_alpha = None
             lite_mu = lite_logvar = lite_z = lite_recon = None
-            lite_feat = None
 
-            if (args.mix_enable or args.kd_enable) and lite_vae is not None:
+            if args.kd_enable and lite_vae is not None:
                 lite_mu, lite_logvar, lite_z, lite_recon = _forward_lite_model(
                     lite_vae,
                     img,
@@ -652,23 +538,6 @@ def trainEncoder(
                 with torch.no_grad():
                     teacher_feat_for_kd = vavae_teacher(teacher_input)
                 teacher_outputs = None
-
-            if args.mix_enable and lite_z is not None:
-                lite_feat = _select_lite_feature(lite_mu, lite_z, mix_feature_mode)
-                if kd_feat_proj is not None:
-                    lite_feat = kd_feat_proj(lite_feat)
-                elif lite_feat.size(1) != activations.size(1):
-                    raise ValueError("Feature dims do not match and no projection is provided for mix")
-                mix_alpha = _compute_mix_alpha(
-                    epoch,
-                    args.mix_start_epoch,
-                    args.mix_end_epoch,
-                    args.mix_alpha_start,
-                    args.mix_alpha_end,
-                    args.mix_schedule,
-                )
-                mix_feat = (1 - mix_alpha) * activations + mix_alpha * lite_feat
-                outputs = _get_classifier(model)(mix_feat)
 
             if not disable_mrc:
                 with torch.no_grad():
@@ -709,16 +578,6 @@ def trainEncoder(
                 base_loss = base_loss + gaussian_prior_loss * args.gaussian_prior_weight
             else:
                 gaussian_prior_loss = torch.tensor(0.0, device=zero_device)
-
-            if aux_vae is not None and args.use_aux_vae and epoch >= args.aux_vae_start_epoch:
-                aux_in = img if args.aux_vae_input == "image" else activations
-                mu, logvar, recon = aux_vae(aux_in)
-                recon_loss = recon_loss_func(recon, img)
-                kl_loss = -0.5 * torch.mean(1 + logvar - mu.pow(2) - logvar.exp())
-                base_loss = base_loss + recon_loss * args.aux_vae_recon_weight + kl_loss * args.aux_vae_kl_weight
-            else:
-                recon_loss = torch.tensor(0.0, device=zero_device)
-                kl_loss = torch.tensor(0.0, device=zero_device)
 
             # KD + LiteVAE student losses
             kd_logit_loss = torch.tensor(0.0, device=zero_device)
@@ -855,8 +714,8 @@ def trainEncoder(
                     _write_local_log(
                         log_f,
                         "epoch={:d} iter={:d} train: total={:.6f}, prob={:.6f}, batch={:.6f}, channel={:.6f}, cls={:.6f}, "
-                        "gauss={:.6f}, aux_recon={:.6f}, aux_kl={:.6f}, kd_logit={:.6f}, kd_feat={:.6f}, kd_struct={:.6f}, "
-                        "lite_recon={:.6f}, lite_kl={:.6f}, lite_ce={:.6f}, lite_acc={:.6f}, mix_alpha={}, cls_loss={}".format(
+                        "gauss={:.6f}, kd_logit={:.6f}, kd_feat={:.6f}, kd_struct={:.6f}, "
+                        "lite_recon={:.6f}, lite_kl={:.6f}, lite_ce={:.6f}, lite_acc={:.6f}, cls_loss={}".format(
                             epoch + 1,
                             i + 1,
                             rank0_loss,
@@ -865,8 +724,6 @@ def trainEncoder(
                             channel_sim_loss.item(),
                             classification_loss.item(),
                             gaussian_prior_loss.item(),
-                            recon_loss.item(),
-                            kl_loss.item(),
                             kd_logit_loss.item(),
                             kd_feat_loss.item(),
                             kd_struct_loss.item(),
@@ -874,7 +731,6 @@ def trainEncoder(
                             lite_kl_loss.item(),
                             lite_ce_loss.item(),
                             lite_acc.item(),
-                            "None" if mix_alpha is None else float(mix_alpha),
                             epoch_cls_loss_name,
                         ),
                     )
@@ -896,24 +752,6 @@ def trainEncoder(
                             lite_vae, lite_classifier, test_loader, return_per_class=per_class_on_train_eval
                         )
                         lite_metrics = (lite_val, lite_test)
-                    mix_metrics = None
-                    if args.mix_eval_enable and lite_vae is not None and model is not None:
-                        alpha_eval = _compute_mix_alpha(
-                            epoch,
-                            args.mix_start_epoch,
-                            args.mix_end_epoch,
-                            args.mix_alpha_start,
-                            args.mix_alpha_end,
-                            args.mix_schedule,
-                        )
-                        mix_val = _epoch_val_mix(
-                            model, lite_vae, kd_feat_proj, val_loader, alpha_eval, return_per_class=per_class_on_train_eval
-                        )
-                        mix_test = _epoch_val_mix(
-                            model, lite_vae, kd_feat_proj, test_loader, alpha_eval, return_per_class=per_class_on_train_eval
-                        )
-                        mix_metrics = (mix_val, mix_test, alpha_eval)
-
                     def _split_eval_result(result):
                         if result is None:
                             return None, None
@@ -927,8 +765,6 @@ def trainEncoder(
                                                  'channel similarity loss': channel_sim_loss.item(),
                                                 'classification loss': classification_loss.item(),
                                                  'gaussian prior loss': gaussian_prior_loss.item(),
-                                                 'aux recon loss': recon_loss.item(),
-                                                 'aux kl loss': kl_loss.item(),
                                                  'kd logit loss': kd_logit_loss.item(),
                                                  'kd feat loss': kd_feat_loss.item(),
                                                  'kd struct loss': kd_struct_loss.item(),
@@ -966,25 +802,6 @@ def trainEncoder(
                                                             'Balanced Accuracy': lval_bac,
                                                             'Sensitivity': lval_sens,
                                                             'Specificity': lval_spec}})
-                        if mix_metrics is not None:
-                            mix_val_g, _ = _split_eval_result(mix_metrics[0])
-                            mix_test_g, _ = _split_eval_result(mix_metrics[1])
-                            alpha_eval = mix_metrics[2]
-                            mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec = mix_val_g
-                            mtest_acc, mtest_f1, mtest_auc, mtest_bac, mtest_sens, mtest_spec = mix_test_g
-                            logger.log({'mix_test': {'Accuracy': mtest_acc,
-                                                     'F1 score': mtest_f1,
-                                                     'AUC': mtest_auc,
-                                                     'Balanced Accuracy': mtest_bac,
-                                                     'Sensitivity': mtest_sens,
-                                                     'Specificity': mtest_spec},
-                                        'mix_validation': {'Accuracy': mval_acc,
-                                                           'F1 score': mval_f1,
-                                                           'AUC': mval_auc,
-                                                           'Balanced Accuracy': mval_bac,
-                                                           'Sensitivity': mval_sens,
-                                                           'Specificity': mval_spec},
-                                        'mix_alpha': float(alpha_eval)})
                     if show_teacher_metrics:
                         _write_local_log(
                             log_f,
@@ -1024,33 +841,6 @@ def trainEncoder(
                                 _write_local_log(log_f, f"epoch={epoch + 1} {line}")
                             for line in _format_per_class_lines("lite_test", lite_test_per):
                                 _write_local_log(log_f, f"epoch={epoch + 1} {line}")
-                    if mix_metrics is not None:
-                        mix_val_g, mix_val_per = _split_eval_result(mix_metrics[0])
-                        mix_test_g, mix_test_per = _split_eval_result(mix_metrics[1])
-                        alpha_eval = mix_metrics[2]
-                        mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec = mix_val_g
-                        mtest_acc, mtest_f1, mtest_auc, mtest_bac, mtest_sens, mtest_spec = mix_test_g
-                        _write_local_log(
-                            log_f,
-                            "epoch={:d} mix_test(alpha={:.3f}): acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
-                                epoch + 1,
-                                float(alpha_eval),
-                                mtest_acc, mtest_f1, mtest_auc, mtest_bac, mtest_sens, mtest_spec
-                            ),
-                        )
-                        _write_local_log(
-                            log_f,
-                            "epoch={:d} mix_val(alpha={:.3f}): acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
-                                epoch + 1,
-                                float(alpha_eval),
-                                mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec
-                            ),
-                        )
-                        if per_class_on_train_eval:
-                            for line in _format_per_class_lines("mix_val", mix_val_per):
-                                _write_local_log(log_f, f"epoch={epoch + 1} {line}")
-                            for line in _format_per_class_lines("mix_test", mix_test_per):
-                                _write_local_log(log_f, f"epoch={epoch + 1} {line}")
                     if show_teacher_metrics:
                         print(
                             "\nepoch={:d} test: acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
@@ -1085,31 +875,6 @@ def trainEncoder(
                             for line in _format_per_class_lines("lite_val", lite_val_per):
                                 print(f"epoch={epoch + 1} {line}")
                             for line in _format_per_class_lines("lite_test", lite_test_per):
-                                print(f"epoch={epoch + 1} {line}")
-                    if mix_metrics is not None:
-                        mix_val_g, mix_val_per = _split_eval_result(mix_metrics[0])
-                        mix_test_g, mix_test_per = _split_eval_result(mix_metrics[1])
-                        alpha_eval = mix_metrics[2]
-                        mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec = mix_val_g
-                        mtest_acc, mtest_f1, mtest_auc, mtest_bac, mtest_sens, mtest_spec = mix_test_g
-                        print(
-                            "epoch={:d} mix_test(alpha={:.3f}): acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
-                                epoch + 1,
-                                float(alpha_eval),
-                                mtest_acc, mtest_f1, mtest_auc, mtest_bac, mtest_sens, mtest_spec
-                            )
-                        )
-                        print(
-                            "epoch={:d} mix_val(alpha={:.3f}): acc={:.6f}, f1={:.6f}, auc={:.6f}, bac={:.6f}, sens={:.6f}, spec={:.6f}".format(
-                                epoch + 1,
-                                float(alpha_eval),
-                                mval_acc, mval_f1, mval_auc, mval_bac, mval_sens, mval_spec
-                            )
-                        )
-                        if per_class_on_train_eval:
-                            for line in _format_per_class_lines("mix_val", mix_val_per):
-                                print(f"epoch={epoch + 1} {line}")
-                            for line in _format_per_class_lines("mix_test", mix_test_per):
                                 print(f"epoch={epoch + 1} {line}")
                     if show_teacher_metrics:
                         if best_test is None or test_acc > best_test["acc"]:
@@ -1157,7 +922,7 @@ def trainEncoder(
                     lgp_latest_path = os.path.join(args.checkpoints, "lite_gaussian_prior_latest.pth")
                     _save_gaussian_prior_stats(lgp_latest_path, lite_gaussian_prior_loss_func)
 
-            if (args.kd_enable or args.mix_enable) and args.kd_save_lite and lite_vae is not None:
+            if args.kd_enable and args.kd_save_lite and lite_vae is not None:
                 if args.kd_save_every_epoch:
                     lite_path = os.path.join(args.checkpoints, "litevae_epoch_{:d}_.pth".format(epoch + 1))
                     torch.save(_get_state_dict(lite_vae), lite_path)

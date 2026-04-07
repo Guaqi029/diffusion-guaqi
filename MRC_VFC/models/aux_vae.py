@@ -3,48 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class AuxVAE(nn.Module):
-    def __init__(self, in_features, latent_dim=128, image_size=224, base_channels=256):
-        super(AuxVAE, self).__init__()
-        self.in_features = in_features
-        self.latent_dim = latent_dim
-        self.image_size = image_size
-        self.base_channels = base_channels
-
-        self.fc_mu = nn.Linear(in_features, latent_dim)
-        self.fc_logvar = nn.Linear(in_features, latent_dim)
-
-        self.fc_decode = nn.Linear(latent_dim, base_channels * 7 * 7)
-        self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(base_channels, 128, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(32, 16, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(16, 3, kernel_size=4, stride=2, padding=1),
-        )
-
-    @staticmethod
-    def reparameterize(mu, logvar):
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        return mu + eps * std
-
-    def forward(self, features):
-        mu = self.fc_mu(features)
-        logvar = self.fc_logvar(features)
-        z = self.reparameterize(mu, logvar)
-        x = self.fc_decode(z)
-        x = x.view(-1, self.base_channels, 7, 7)
-        x = self.decoder(x)
-        if x.size(-1) != self.image_size:
-            x = nn.functional.interpolate(x, size=(self.image_size, self.image_size), mode="bilinear", align_corners=False)
-        return mu, logvar, x
-
-
 class HaarDWT(nn.Module):
     def __init__(self, in_channels=3):
         super().__init__()
@@ -63,63 +21,6 @@ class HaarDWT(nn.Module):
         x = F.conv2d(x, weight, stride=2, groups=self.in_channels)
         # shape: (B, 4*C, H/2, W/2)
         return x
-
-
-class LiteAuxVAE(nn.Module):
-    def __init__(self, image_size=224, in_channels=3, base_channels=64, latent_dim=128, dwt_levels=1):
-        super().__init__()
-        self.image_size = image_size
-        self.in_channels = in_channels
-        self.base_channels = base_channels
-        self.latent_dim = latent_dim
-        self.dwt_levels = dwt_levels
-
-        self.dwt = HaarDWT(in_channels=in_channels)
-
-        feat_in = in_channels * (4 ** dwt_levels)
-        self.encoder = nn.Sequential(
-            nn.Conv2d(feat_in, base_channels, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(base_channels, base_channels * 2, kernel_size=3, stride=2, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(base_channels * 2, base_channels * 4, kernel_size=3, stride=2, padding=1),
-            nn.ReLU(inplace=True),
-            nn.AdaptiveAvgPool2d((1, 1)),
-        )
-
-        enc_out = base_channels * 4
-        self.fc_mu = nn.Linear(enc_out, latent_dim)
-        self.fc_logvar = nn.Linear(enc_out, latent_dim)
-
-        self.fc_decode = nn.Linear(latent_dim, base_channels * 4 * 7 * 7)
-        self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(base_channels * 4, base_channels * 2, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(base_channels * 2, base_channels, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(base_channels, in_channels, kernel_size=4, stride=2, padding=1),
-        )
-
-    @staticmethod
-    def reparameterize(mu, logvar):
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        return mu + eps * std
-
-    def forward(self, x):
-        # x: image tensor
-        for _ in range(self.dwt_levels):
-            x = self.dwt(x)
-        h = self.encoder(x)
-        h = h.view(h.size(0), -1)
-        mu = self.fc_mu(h)
-        logvar = self.fc_logvar(h)
-        z = self.reparameterize(mu, logvar)
-        y = self.fc_decode(z).view(-1, self.base_channels * 4, 7, 7)
-        y = self.decoder(y)
-        if y.size(-1) != self.image_size:
-            y = F.interpolate(y, size=(self.image_size, self.image_size), mode="bilinear", align_corners=False)
-        return mu, logvar, y
 
 
 class MultiLevelDWT(nn.Module):
